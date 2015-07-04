@@ -1,16 +1,17 @@
 #!/usr/bin/env perl
-# This program is free software; you
-# can redistribute it and/or modify it under the same terms
-# as Perl 5.10.0. 
+# FIXME: license
 # Copyright (C), 2014, 2015 Simon Reinhardt
-use 5.014;
+use 5.010;
 use warnings;
 use strict;
-use autodie;
+# do not use floating point arithmetic in divisions
+use integer;
 use utf8;
+use Encode;
 use Getopt::Long qw/:config no_ignore_case bundling/;
 use File::Temp qw/tempfile/;
 use File::Basename;
+
 
 binmode STDOUT, ':encoding(UTF-8)'; 
 binmode STDIN, ':encoding(UTF-8)';
@@ -19,16 +20,17 @@ binmode STDERR, ':encoding(UTF-8)';
 $_ = decode ('UTF-8', $_) for @ARGV;
 
 my $prog_name = basename ($0);
-my $outfile;
+my $output_filename;
 my $print_help = 0;
 my $print_version = 0;
 
 GetOptions (
-    "output|o=s" => \$outfile,
+    "output|o=s" => \$output_filename,
     "help|h" => \$print_help,
     "version|V" => \$print_version,
     )
     or exit 1;
+
 if ($print_help) {
     print_help ();
     exit 0;
@@ -39,12 +41,18 @@ if ($print_version) {
     exit 0;
 }
 
-if ($#ARGV == -1) {
-    state_usage ();
+if (!@ARGV) {
+    print_usage ();
     die "error: need at least one non-option argument\n";
 }
 
 my $djvu_filename = $ARGV[0];
+
+if (!$output_filename) {
+    $output_filename = $djvu_filename;
+}
+
+my $bookmarks_filename;
 
 if ($ARGV[1]) {
     $bookmarks_filename = $ARGV[1];
@@ -53,106 +61,94 @@ else {
     $bookmarks_filename = get_default_filename ($djvu_filename);
 }
 
-if (! -e $bookmarks_filename) { 			  
+if (! -e $bookmarks_filename) {
+    print_usage ();
     die "error: bookmarks file $bookmarks_filename does not exist.\n";
 }
 
+open my $in_fh, '<', $bookmarks_filename
+    or die "cannot open $bookmarks_filename: $!\n";
+binmode $in_fh, ':encoding(UTF-8)';
 
-my $command;
-open my $in_fh, '<', $bookmarks_filename;
-(my $out_fh, my $out_filename) = tempfile() ;
-binmode $in_fh, ':encoding(UTF-8)'; # utf8::all not working together with autodie ?
-binmode $out_fh, ':encoding(UTF-8)';
-my @pre_Array;
-my @Array;	
-my $indent = qr/\t| {4}/; # indent with tab or 4 spaces
-my $regexp = qr/\A(?<tabulator>($indent)*)(?<title>.+?)(\s|\.)+(?<page>-?[0-9]+)\s*\Z/;   
-# check Array
-my $last_indent_depth = 0;
-if ($use_nested) {
-    @pre_Array = <$in_fh>;
-    if ($trim) {
-	s/\A\s*// foreach (@pre_Array);
-    }
-    if ($multline) {
-	@pre_Array = join_lines(@pre_Array);
-    }
-    @pre_Array = apply_page_differences(@pre_Array);
-    # check input indentation
-    for( my $i=0; $i <= $#pre_Array; ++$i) {
-	if ($pre_Array[$i] =~ /$regexp/) {
-	    my $indent_depth =()= $+{tabulator} =~ /$indent/g;
-	    if ($indent_depth > $last_indent_depth + 1) {
-		die "too mutch indentation at line ${i}: ${pre_Array[$i]}";
-	    } 
-	    else {
-		push @Array, $pre_Array[$i];
-		$last_indent_depth = $indent_depth;
-	    }
-	} 
-	else {
-	    print STDERR "no pattern match at line ${i}: ${pre_Array[$i]}" unless $pre_Array[$i] =~ /\A\s*\Z/ ;
-	}
-    }
-    my $last = $#Array;
-    print {$out_fh} "(bookmarks\n";
-    for (my $i = 0; $i <= $last; ++$i) {
-	$Array[$i] =~ /$regexp/; 
-	my $Page = $+{'page'} ;
-	my $title = $+{'title'};
-	my $indent_depth =()= $+{tabulator} =~ /$indent/g;
-	# need to escape " \ and ( )
-	$title = escape_djvused_special_characters($title);
-	print {$out_fh} "(\"${title}\" \"#${Page}\"";
-	# calculate number of closing parenthesis
-	if ($i == $last) {
-	    print {$out_fh} ")"x($indent_depth + 1), "\n";
-	} 
-	else {
-	    $Array[$i+1] =~ /$regexp/;
-	    my $next_indent_depth =()= $+{tabulator} =~ /$indent/g;
-	    if ($next_indent_depth <= $indent_depth ) {
-		print {$out_fh} ")"x($indent_depth - $next_indent_depth + 1), "\n";
-	    } 
-	    else { print {$out_fh} "\n";}
-	}
-    }
-    print {$out_fh} ")\n";
-} 
-else { # do not use nested
-    @Array = <$in_fh>;
-    if ($trim) {
-	s/\A\s*// foreach (@Array);
-    }
-    if ($multline) {
-	@Array = join_lines(@Array);
-    }
-    @Array = apply_page_differences(@Array);
-    my $last = $#Array;
-    print {$out_fh} "(bookmarks\n";
-    for (my $i = 0; $i <= $last; ++$i) {
-	if ($Array[$i] =~ /$regexp/) {
-	    my $Page = $+{'page'};
-	    my $title = $+{'title'};
-	    # need to escape " \ and ( )
-	    $title = escape_djvused_special_characters($title);
-	    print {$out_fh} "(\"${title}\" \"#${Page}\")\n";
-	} 
-	else {
-	    print STDERR "no pattern match: $Array[$i]" unless $Array[$i] =~ /\A\s*\Z/;
-	}
-    }
-    print {$out_fh} ")\n";
-}
-close $out_fh; # flush buffer
+my $djvused_outline = write_djvused_outline ($in_fh);
+
+# run external commands
 if ($djvu_filename ne $output_filename) {
-    $command = "cp ".shell_quote($djvu_filename) ." ".shell_quote($output_filename);
-    system_bash($command);
+    system_wrapper ("cp", $djvu_filename, $output_filename);
 }
-$command = "djvused ".shell_quote($output_filename)." -e ".shell_quote("set-outline ".shell_quote($out_filename))." -s";
-system_bash($command);
+
+system_wrapper ("djvused", $output_filename, "-e",
+		"set-outline $djvused_outline", "-s");
+
+
+# returns filename
+sub write_djvused_outline {
+    my $in_fh = shift;
+    (my $out_fh, my $out_filename) = tempfile (UNLINK => 1);
+    binmode $out_fh, ':encoding(UTF-8)';
+
+    my $regexp = 
+	qr/^(?<indent>( {4})*)(?<title>.+?)(\s|\.)+(?<page>-?[0-9]+)\s*$/;
+    my $line_number = 0;
+    my $offset = 0;
+    my $indent_depth;
+    my $prev_indent_depth = -1;
+
+    print {$out_fh} "(bookmarks";
+    
+    while (my $line = <$in_fh>) {
+	chomp ($line);
+	++$line_number;
+	
+	# skip blank lines or comments
+	next if $line =~ /^\s*$/ or $line =~ /^#/;
+
+	# check for offset marker
+	if ($line =~ /^\s*d=(?<difference>-?[0-9]+)\s*$/) {
+	    $offset = $+{difference};
+	    next;
+	}
+	
+	# match line against $regexp
+	if ($line !~ $regexp) {
+	    die "error: line $line_number is broken:\n$line\n";
+	}
+	$indent_depth = length ($+{indent}) / 4;
+
+	my $title = $+{title};
+	my $page = $+{page} + $offset;
+	
+	if ($indent_depth > $prev_indent_depth + 1) {
+	    die "too mutch indentation in line $line_number:\n$line\n";
+	}
+
+	# deescape backslash infront of hash
+	$title =~ s/^\\(\\*)#/$1#/;
+	$title = escape_djvused_special_characters ($title);
+
+	# print closing parenthesis for the previous entry
+	print {$out_fh} ")"x($prev_indent_depth - $indent_depth + 1), "\n";
+	$prev_indent_depth = $indent_depth;
+	
+	# print this outline item
+	print {$out_fh} qq{("$title" "#$page"};
+    }
+
+    if ($prev_indent_depth == -1) {
+	die "no bookmarks found\n";
+    }
+    
+    # print closing parenthesis
+    print {$out_fh} ")"x($prev_indent_depth + 1), "\n", ")", "\n";
+    
+    # flush buffer
+    close $out_fh;
+    
+    return $out_filename;
+}
 
 sub escape_djvused_special_characters {
+    # FIXME: check djvused manpage
     my $title = shift;
     $title =~ s/\\/\\\\/g;	    
     $title =~ s/"/\\"/g;
@@ -161,66 +157,10 @@ sub escape_djvused_special_characters {
     return $title;
 }
 
-sub system_bash {
-    my $command = shift;
-    say "command: $command";
-    system("bash -c ".shell_quote($command));
-}
-
-sub join_lines {
-    my @old_Array = @_;
-    my @Array;
-    my $string = "";
-    my $finished_line = 1;
-    foreach (@old_Array) {
-	if ($finished_line) {
-	    if (/$regexp/ || /\A\s*d=(?<difference>-?[0-9]+)\s*\Z/) {
-		push @Array, $_;
-		next;
-	    }
-	    else 		# line is not terminated with page number
-	    {
-		if (!/\A(\s|\.)*\Z/ && /\A(?<title>.+?)(\s|\.)+\Z/ ) {
-		    $string = $+{'title'};
-		    $finished_line = 0;
-		}
-	    }
-	}
-	else 
-	{
-	    if (/\A(\s|\.)*(?<title>.*?)(\s|\.)*(?<page>-?[0-9]+)\s*\Z/) { # found page number and finished the line
-		$string = $string . " ". $+{'title'} . " "  . $+{'page'} . "\n";
-		push @Array, $string;
-		$finished_line = 1;
-	    }
-	    else 
-	    {
-		if (/\A(\s|\.)*(?<title>.+?)(\s|\.)*\Z/) {
-		    $string = $string . " ". $+{'title'};
-		}
-	    }
-	}
-    }
-    if (!$finished_line) {
-	say STDERR "warning: could not finish line: $string";
-    }
-    return @Array;
-}
-sub apply_page_differences {
-    my @old_Array = @_;
-    my @Array;
-    foreach (@old_Array) {
-	if (/\A\s*d=(?<difference>-?[0-9]+)\s*\Z/) {
-	    $difference =  $+{'difference'};
-	} 
-	elsif (/\A(?<title>.+?)(\s|\.)+(?<page>-?[0-9]+)\s*\Z/) {
-	    push @Array, $+{'title'}. " " . ($+{'page'} + $difference);
-	} 
-	else {
-	    print STDERR "no pattern match: $_" unless /\A\s*\Z/;
-	}
-    }
-    return @Array;
+sub system_wrapper {
+    say "command: @_";
+    system (@_) == 0
+	or die "error: system failed: $?\n"
 }
 
 sub get_default_filename {
@@ -235,4 +175,27 @@ sub get_default_filename {
     }
 
     return $bookmarks_filename;
+}
+
+sub print_usage {
+    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [BOOKMARKS_FILE]";
+}
+
+sub print_version {
+    say "bookmark-djvu 0.1
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law."
+}
+
+sub print_help {
+    print_usage ();
+        say "
+FIXME
+ Options:
+  -o, --output=FILE           do not modify DJVU-FILENAME and write the 
+                              bookmarked djvu file to FILE. 
+  -h, --help                  print this help screen
+  -V, --version               print program version
+FIXME: Report bugs to...";
 }
