@@ -19,7 +19,7 @@ binmode STDERR, ':encoding(UTF-8)';
 
 $_ = decode ('UTF-8', $_) for @ARGV;
 
-my $prog_name = basename ($0);
+my $prog_name = basename $0;
 my $output_filename;
 my $print_help = 0;
 my $print_version = 0;
@@ -47,6 +47,10 @@ if (!@ARGV) {
 }
 
 my $djvu_filename = $ARGV[0];
+if (! -e $djvu_filename) {
+    print_usage ();
+    die "error: djvu file '$djvu_filename' does not exist\n";
+}
 
 if (!$output_filename) {
     $output_filename = $djvu_filename;
@@ -58,12 +62,13 @@ if ($ARGV[1]) {
     $bookmarks_filename = $ARGV[1];
 }
 else {
-    $bookmarks_filename = get_default_filename ($djvu_filename);
+    $bookmarks_filename = get_default_filename ($djvu_filename, ".djvu",
+						".bm");
 }
 
 if (! -e $bookmarks_filename) {
     print_usage ();
-    die "error: bookmarks file $bookmarks_filename does not exist.\n";
+    die "error: bookmarks file '$bookmarks_filename' does not exist\n";
 }
 
 open my $in_fh, '<', $bookmarks_filename
@@ -84,16 +89,24 @@ system_wrapper ("djvused", $output_filename, "-e",
 # returns filename
 sub write_djvused_outline {
     my $in_fh = shift;
-    (my $out_fh, my $out_filename) = tempfile (UNLINK => 1);
+    # FIXME: unlink for production use
+    (my $out_fh, my $out_filename) = tempfile ;#(UNLINK => 1);
     binmode $out_fh, ':encoding(UTF-8)';
 
-    my $regexp = 
-	qr/^(?<indent>( {4})*)(?<title>.+?)(\s|\.)+(?<page>-?[0-9]+)\s*$/;
+    my $regexp = qr/
+       ^
+       (?<indent>(\ {4})*)
+       (?<title>.+?)
+       (\s|\.)+
+       (?<page>-?[0-9]+)
+       \s*$
+    /x;
     my $line_number = 0;
     my $offset = 0;
     my $indent_depth;
     my $prev_indent_depth = -1;
 
+    my $regexp2 = qr/(\\|"|\a|\r|\n)/;
     print {$out_fh} "(bookmarks";
     
     while (my $line = <$in_fh>) {
@@ -122,10 +135,10 @@ sub write_djvused_outline {
 	    die "too mutch indentation in line $line_number:\n$line\n";
 	}
 
-	# deescape backslash infront of hash
-	$title =~ s/^\\(\\*)#/$1#/;
-	$title = escape_djvused_special_characters ($title);
-
+	$title = unescape ($title);
+	#say "unescaped: '$title'";
+	$title = djvused_escape ($title);
+	#say "djvused_escaped: '$title'";
 	# print closing parenthesis for the previous entry
 	print {$out_fh} ")"x($prev_indent_depth - $indent_depth + 1), "\n";
 	$prev_indent_depth = $indent_depth;
@@ -135,7 +148,7 @@ sub write_djvused_outline {
     }
 
     if ($prev_indent_depth == -1) {
-	die "no bookmarks found\n";
+     	warn "removing outline\n";
     }
     
     # print closing parenthesis
@@ -147,13 +160,29 @@ sub write_djvused_outline {
     return $out_filename;
 }
 
-sub escape_djvused_special_characters {
-    # FIXME: check djvused manpage
+sub unescape {
+    my $string = shift;
+    $string =~ s/\\(\\|#|n)/$1 eq 'n' ? "\n" : $1/ge;
+    return $string;
+}
+    
+sub djvused_escape {
+    # see djvused(1): "DJVUSED FILE FORMATS - Strings" 
+    # and perlrebackslash
+
     my $title = shift;
     $title =~ s/\\/\\\\/g;	    
     $title =~ s/"/\\"/g;
-    $title =~ s/\(/\\\(/g;
-    $title =~ s/\)/\\\)/g;
+
+    # a b t n v f r
+    $title =~ s/\a/\\a/g;
+    $title =~ s/\x{08}/\\b/g;
+    $title =~ s/\t/\\t/g;
+    $title =~ s/\n/\\n/g;
+    $title =~ s/\x{0b}/\\v/g;
+    $title =~ s/\f/\\f/g;
+    $title =~ s/\r/\\r/g;
+    
     return $title;
 }
 
@@ -164,17 +193,20 @@ sub system_wrapper {
 }
 
 sub get_default_filename {
-    my $djvu_filename = shift;
-    my $bookmarks_filename;
+    my $filename = shift;
+    my $from = shift;
+    my $too = shift;
+    die "get_default_filename needs arg" unless defined ($too);
+    my $result_filename;
     
-    if ($djvu_filename =~ /\.djvu$/) {
-	($bookmarks_filename = $djvu_filename) =~ s/\.djvu/\.bm/;
+    if ($filename =~ /\Q$from\E$/) {
+	($result_filename = $filename) =~ s/\Q$from\E/$too/;
     }
     else {
-	$bookmarks_filename = "${djvu_filename}.bm";
+	$result_filename = $filename . $too;
     }
 
-    return $bookmarks_filename;
+    return $result_filename;
 }
 
 sub print_usage {

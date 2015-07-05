@@ -1,0 +1,153 @@
+#!/usr/bin/env perl
+# FIXME: license
+# Copyright (C), 2015 Simon Reinhardt
+use 5.010;
+use warnings;
+use strict;
+use utf8;
+use Getopt::Long qw/:config no_ignore_case bundling/;
+use File::Temp qw/tempfile/;
+use File::Basename;
+use Encode;
+
+binmode STDOUT, ':encoding(UTF-8)'; 
+binmode STDIN, ':encoding(UTF-8)';
+binmode STDERR, ':encoding(UTF-8)';
+
+$_ = decode ('UTF-8', $_) for @ARGV;
+
+my $prog_name = basename $0;
+my $output_filename;
+my $print_help = 0;
+my $print_version = 0;
+
+GetOptions (
+    "output|o=s" => \$output_filename,
+    "help|h" => \$print_help,
+    "version|V" => \$print_version,
+    )
+    or exit 1;
+
+if ($print_help) {
+    print_help ();
+    exit 0;
+}
+
+if ($print_version) {
+    print_version ();
+    exit 0;
+}
+
+if (!@ARGV) {
+    print_usage ();
+    die "error: need at least one non-option argument\n";
+}
+
+my $djvu_filename = $ARGV[0];
+if (! -e $djvu_filename) {
+    print_usage ();
+    die "error: djvu file '$djvu_filename' does not exist\n";
+}
+
+if (!$output_filename) {
+    $output_filename = get_default_filename ($djvu_filename, ".djvu", ".bm");
+    if (-e $output_filename) {
+	die  "won't overwrite existing file '$output_filename'. " .
+	    "Use a '-o FILE' option!";
+    }
+}
+
+open my $output_fd, ">", $output_filename
+    or die "cannot open file '$output_filename': $!";
+binmode $output_fd, ':encoding(UTF-8)';
+
+# start extracting bookmarks with djvused in a pipe
+open my $djvused_fd, "-|", ("djvused", $djvu_filename, "-u", "-e",
+			    "print-outline")
+    or die "could not start djvused: $!\n";
+binmode $djvused_fd, ':encoding(UTF-8)';
+
+    
+extract_bookmarks ($djvused_fd, $output_fd)
+    or die "no bookmarks found";
+
+close $djvused_fd
+    or die "djvused failed with exit status $?";
+
+sub extract_bookmarks {
+    my $djvused_fd = shift;
+    my $output_fd = shift;
+    my $level = 0;
+    my $line = <$djvused_fd>;
+    if ($line !~ /^\(bookmarks$/) {
+	warn "no bookmarks found\n";
+	return 0;
+    }
+    while ($line = <$djvused_fd>) {
+	chomp $line;
+	$line =~ /^\s*\("(?<title>.+)"$/
+	    or die "line '$line' in djvused output does not match";
+	# FIXME: report bug to...
+	my $title = $+{title};	# FIXME: unescape
+	
+	print {$output_fd} "    "x($level) . $title;
+
+	$line = <$djvused_fd>;
+
+	$line =~ /\s*"#(?<page>[0-9]+)"(?<close>(\s*\))*)\s*$/
+	    or die "line '$line' in djvused output does not match";
+	# FIXME: report bug to...
+	print {$output_fd} " $+{page}\n";
+	$level -= ($+{close} =~ tr/\)//) - 1;
+    }
+    
+    return 1;
+}
+
+
+
+
+sub get_default_filename {
+    my $filename = shift;
+    my $from = shift;
+    my $too = shift;
+    die "get_default_filename needs arg" unless defined ($too);
+    my $result_filename;
+    
+    if ($filename =~ /\Q$from\E$/) {
+	($result_filename = $filename) =~ s/\Q$from\E/$too/;
+    }
+    else {
+	$result_filename = $filename . $too;
+    }
+
+    return $result_filename;
+}
+
+sub system_wrapper {
+    say "command: @_";
+    system (@_) == 0
+	or die "error: system failed: $?\n"
+}
+
+sub print_usage {
+    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [-o BOOKMARKS_FILE]";
+}
+
+sub print_version {
+    say "bookmark-djvu 0.1
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law."
+}
+
+sub print_help {
+    print_usage ();
+        say "
+FIXME
+ Options:
+  -o, --output=FILE           write bookmarks to FILE 
+  -h, --help                  print this help screen
+  -V, --version               print program version
+FIXME: Report bugs to...";
+}
