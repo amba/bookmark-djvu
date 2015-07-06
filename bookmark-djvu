@@ -106,7 +106,6 @@ sub write_djvused_outline {
     my $indent_depth;
     my $prev_indent_depth = -1;
 
-    my $regexp2 = qr/(\\|"|\a|\r|\n)/;
     print {$out_fh} "(bookmarks";
     
     while (my $line = <$in_fh>) {

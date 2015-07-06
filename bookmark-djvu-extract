@@ -86,17 +86,18 @@ sub extract_bookmarks {
     while ($line = <$djvused_fd>) {
 	chomp $line;
 	$line =~ /^\s*\("(?<title>.+)"$/
-	    or die "line '$line' in djvused output does not match";
-	# FIXME: report bug to...
-	my $title = $+{title};	# FIXME: unescape
+	    or die "line '$line' in djvused output does not match.
+Please report to FIXME!\n";
+	
+	my $title = escape (djvused_unescape ($+{title}));
 	
 	print {$output_fd} "    "x($level) . $title;
 
 	$line = <$djvused_fd>;
 
 	$line =~ /\s*"#(?<page>[0-9]+)"(?<close>(\s*\))*)\s*$/
-	    or die "line '$line' in djvused output does not match";
-	# FIXME: report bug to...
+	    or die "line '$line' in djvused output does not match.
+Please report to FIXME\n";
 	print {$output_fd} " $+{page}\n";
 	$level -= ($+{close} =~ tr/\)//) - 1;
     }
@@ -104,6 +105,50 @@ sub extract_bookmarks {
     return 1;
 }
 
+sub escape {
+    my $string = shift;
+
+    $string =~ s/\\/\\\\/g;
+    $string =~ s/\n/\\n/g;
+    $string =~ s/#/\\#/g;
+    
+    return $string;
+}
+
+sub djvused_unescape {
+    my $string = shift;
+    # FIXME: test this
+    $string =~ s/\\(.)/
+    if ($1 eq "\\" or $1 eq "\"") {
+	$1;
+    }
+    elsif ($1 eq "a") {
+	"\a";
+    }
+    elsif ($1 eq "b") {
+	"\b";
+    }
+    elsif ($1 eq "t") {
+	"\t";
+    }
+    elsif ($1 eq "n") {
+	"\n";
+    }
+    elsif ($1 eq "v") {
+	"\x{0b}";
+    }
+    elsif ($1 eq "f") {
+	"\f";
+    }
+    elsif ($1 eq "r") {
+	"\r";
+    }
+    else {
+	die "unknown escape sequence, report to FIXME";
+    }
+    /ge;
+    return $string
+}
 
 
 
