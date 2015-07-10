@@ -198,6 +198,10 @@ The format of the generated BOOKMARKS-FILE is described in the README file.
   -o, --output=FILE           write bookmarks to FILE 
   -h, --help                  print this help screen
   -V, --version               print program version
+
+The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed
+to '.bm'.
+
 FIXME: Report bugs to...";
 }
 
