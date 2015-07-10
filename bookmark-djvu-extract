@@ -17,6 +17,7 @@ binmode STDERR, ':encoding(UTF-8)';
 $_ = decode ('UTF-8', $_) for @ARGV;
 
 my $prog_name = basename $0;
+my $bug_address = "www.github.com/simon0x5b/bookmark-djvu/issues";
 my $output_filename;
 my $print_help = 0;
 my $print_version = 0;
@@ -87,7 +88,7 @@ sub extract_bookmarks {
 	chomp $line;
 	$line =~ /^\s*\("(?<title>.+)"$/
 	    or die "line '$line' in djvused output does not match.
-Please report to FIXME!\n";
+Please report to $bug_address\n";
 	
 	my $title = djvused_unescape ($+{title});
 	
@@ -99,7 +100,7 @@ Please report to FIXME!\n";
 
 	$line =~ /\s*"#(?<page>[0-9]+)"(?<close>(\s*\))*)\s*$/
 	    or die "line '$line' in djvused output does not match.
-Please report to FIXME\n";
+Please report to $bug_address\n";
 	print {$output_fd} " $+{page}\n";
 	$level -= ($+{close} =~ tr/\)//) - 1;
     }
@@ -153,7 +154,7 @@ sub djvused_unescape {
 	"\r";
     }
     else {
-	die "unknown escape sequence, report to FIXME";
+	die "unknown escape sequence, please report to $bug_address";
     }
     /ge;
     return $string
@@ -202,7 +203,7 @@ The format of the generated BOOKMARKS-FILE is described in the README file.
 The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed
 to '.bm'.
 
-FIXME: Report bugs to...";
+Report bugs to $bug_address";
 }
 
 sub print_version {
