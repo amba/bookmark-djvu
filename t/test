@@ -1,0 +1,59 @@
+#!/usr/bin/env perl
+
+# LICENSE: GPLv3+
+
+use 5.014;
+use warnings;
+use strict;
+use File::Temp qw/tempfile/;
+use utf8;
+use Test::More;
+
+(undef, my $djvu) = tempfile (UNLINK => 1);
+say "djvu: $djvu";
+
+# create empty djvu
+system_ok ("djvumake $djvu INFO=100,100,100");
+
+# ################################# #
+# compare files after set and get:  #
+# ################################# #
+
+system_ok ("../bookmark-djvu $djvu input1");
+
+(undef, my $outline) = tempfile (UNLINK => 1);
+system_ok ("../bookmark-djvu-extract $djvu -o $outline");
+
+# compare
+system_ok ("diff -C 3 $outline expected1");
+
+# ######################## #
+# check default filenames  #
+# ######################## #
+
+(undef, $djvu) = tempfile (SUFFIX => '.djvu', UNLINK => 1);
+say "djvu: $djvu";
+
+# create empty djvu
+system_ok ("djvumake $djvu INFO=100,100,100");
+$outline = ($djvu =~ s/\.djvu$/.bm/r);
+say "outline: $outline";
+    
+system_ok ("cp input1 $outline");
+# compare files after set and get:
+ 
+system_ok ("../bookmark-djvu $djvu");
+
+unlink ($outline);
+
+system_ok ("../bookmark-djvu-extract $djvu");
+
+# compare
+system_ok ("diff -C 3 $outline expected1");
+
+done_testing ();
+
+sub system_ok {
+    my $command = shift;
+    is(system ($command), 0, "command: $command");
+}
