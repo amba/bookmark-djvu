@@ -1,19 +1,17 @@
 ABOUT
 =====
-
 bookmark-djvu and bookmark-djvu-extract are wrappers around DjVuLibre's
 djvused(1) program. They allow for the simple modification and extraction
-of outlines (aka. bookmarks).
+of DjVu outlines (aka. bookmarks).
 
 The input format for bookmarking is close to what DjVuLibre's djvutxt
 provides.
 
 INSTALL
 =======
-
 you only need djvused:
 Debian, Ubuntu: $ apt-get install djvulibre-bin
-Fedora: $ yum install djvulibre
+Fedora: $ yum install djvulibre perl-Test-Simple
 
 USAGE
 =====
@@ -23,8 +21,7 @@ and commandline option information.
 
 INPUT/OUTPUT FORMAT
 ===================
-
-example:
+example input file:
 %< %< %< %< %< %< %< %< %< %<
 
 Cover 1
@@ -57,6 +54,10 @@ Note that with this format it is impossible to have trailing dots
 or whitespace in a title. Also it is not possile to have newlines in titles.
 Maybe we will provide YAML as an input/output format in the future.
 
+TESTS
+=====
+the tests are run with
+$ cd t/ && ./test
 
 LICENSE
 =======
@@ -73,6 +74,7 @@ LICENSE
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 
 Copyright (C) 2014, 2015 AUTHORS
 (see the AUTHORS file for the list of contributers)
