@@ -50,8 +50,8 @@ whitespace.
 
 Blank lines are ignored.
 
-Note that with this format it is impossible to have trailing dots
-or whitespace in a title. Also it is not possile to have newlines in titles.
+Note that with this format it's impossible to have trailing dots
+or whitespace in a title. Also it's impossible to have newlines in titles.
 Maybe we will provide YAML as an input/output format in the future.
 
 TESTS
