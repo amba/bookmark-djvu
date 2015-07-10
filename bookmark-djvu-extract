@@ -1,12 +1,12 @@
 #!/usr/bin/env perl
-# FIXME: license
-# Copyright (C), 2015 Simon Reinhardt
+
+# LICENSE: GPLv3+
+
 use 5.010;
 use warnings;
 use strict;
 use utf8;
 use Getopt::Long qw/:config no_ignore_case bundling/;
-use File::Temp qw/tempfile/;
 use File::Basename;
 use Encode;
 
@@ -89,7 +89,9 @@ sub extract_bookmarks {
 	    or die "line '$line' in djvused output does not match.
 Please report to FIXME!\n";
 	
-	my $title = escape (djvused_unescape ($+{title}));
+	my $title = djvused_unescape ($+{title});
+	
+	$title = prepare_title ($title);
 	
 	print {$output_fd} "    "x($level) . $title;
 
@@ -105,14 +107,21 @@ Please report to FIXME\n";
     return 1;
 }
 
-sub escape {
-    my $string = shift;
-
-    $string =~ s/\\/\\\\/g;
-    $string =~ s/\n/\\n/g;
-    $string =~ s/#/\\#/g;
+sub prepare_title {
+    my $title = shift;
     
-    return $string;
+    if ($title =~ /\n/) {
+	    warn "WARNING: removing newline in title '$title'.\n";
+	    $title =~ s/\n/ /g;
+    }
+
+    if ($title =~ /(\.|\s)+$/) {
+	warn "WARNING: removing trailing dots and/or whitespace " .
+	    "in title '$title'.\n";
+	$title =~ s/(\.|\s)+$//;
+    }
+
+    return $title;
 }
 
 sub djvused_unescape {
@@ -179,6 +188,19 @@ sub print_usage {
     say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [-o BOOKMARKS_FILE]";
 }
 
+sub print_help {
+    print_usage ();
+    say "
+extract the outline of DJVU-FILENAME.
+The format of the generated BOOKMARKS-FILE is described in the README file.
+
+ Options:
+  -o, --output=FILE           write bookmarks to FILE 
+  -h, --help                  print this help screen
+  -V, --version               print program version
+FIXME: Report bugs to...";
+}
+
 sub print_version {
     say "bookmark-djvu 0.1
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
@@ -186,13 +208,3 @@ This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law."
 }
 
-sub print_help {
-    print_usage ();
-        say "
-FIXME
- Options:
-  -o, --output=FILE           write bookmarks to FILE 
-  -h, --help                  print this help screen
-  -V, --version               print program version
-FIXME: Report bugs to...";
-}

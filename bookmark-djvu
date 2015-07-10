@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
-# FIXME: license
-# Copyright (C), 2014, 2015 Simon Reinhardt
+
+# License: GPLv3+
+
 use 5.010;
 use warnings;
 use strict;
@@ -21,12 +22,14 @@ $_ = decode ('UTF-8', $_) for @ARGV;
 
 my $prog_name = basename $0;
 my $output_filename;
+my $allow_comments = 0;
 my $print_help = 0;
 my $print_version = 0;
 
 GetOptions (
     "output|o=s" => \$output_filename,
     "help|h" => \$print_help,
+    "allow-comments|c" => \$allow_comments,
     "version|V" => \$print_version,
     )
     or exit 1;
@@ -89,8 +92,7 @@ system_wrapper ("djvused", $output_filename, "-e",
 # returns filename
 sub write_djvused_outline {
     my $in_fh = shift;
-    # FIXME: unlink for production use
-    (my $out_fh, my $out_filename) = tempfile ;#(UNLINK => 1);
+    (my $out_fh, my $out_filename) = tempfile (UNLINK => 1);
     binmode $out_fh, ':encoding(UTF-8)';
 
     my $regexp = qr/
@@ -113,7 +115,7 @@ sub write_djvused_outline {
 	++$line_number;
 	
 	# skip blank lines or comments
-	next if $line =~ /^\s*$/ or $line =~ /^#/;
+	next if $line =~ /^\s*$/ or ($allow_comments and $line =~ /^#/);
 
 	# check for offset marker
 	if ($line =~ /^\s*d=(?<difference>-?[0-9]+)\s*$/) {
@@ -133,16 +135,13 @@ sub write_djvused_outline {
 	if ($indent_depth > $prev_indent_depth + 1) {
 	    die "too mutch indentation in line $line_number:\n$line\n";
 	}
-
-	$title = unescape ($title);
-	#say "unescaped: '$title'";
 	$title = djvused_escape ($title);
-	#say "djvused_escaped: '$title'";
+	
 	# print closing parenthesis for the previous entry
 	print {$out_fh} ")"x($prev_indent_depth - $indent_depth + 1), "\n";
 	$prev_indent_depth = $indent_depth;
 	
-	# print this outline item
+	# print out this outline item
 	print {$out_fh} qq{("$title" "#$page"};
     }
 
@@ -159,11 +158,11 @@ sub write_djvused_outline {
     return $out_filename;
 }
 
-sub unescape {
-    my $string = shift;
-    $string =~ s/\\(\\|#|n)/$1 eq 'n' ? "\n" : $1/ge;
-    return $string;
-}
+# sub unescape {
+#     my $string = shift;
+#     $string =~ s/\\(\\|#|n)/$1 eq 'n' ? "\n" : $1/ge;
+#     return $string;
+# }
     
 sub djvused_escape {
     # see djvused(1): "DJVUSED FILE FORMATS - Strings" 
@@ -177,7 +176,7 @@ sub djvused_escape {
     $title =~ s/\a/\\a/g;
     $title =~ s/\x{08}/\\b/g;
     $title =~ s/\t/\\t/g;
-    $title =~ s/\n/\\n/g;
+    $title =~ s/\n/\\n/g;	# never encountered
     $title =~ s/\x{0b}/\\v/g;
     $title =~ s/\f/\\f/g;
     $title =~ s/\r/\\r/g;
@@ -209,7 +208,27 @@ sub get_default_filename {
 }
 
 sub print_usage {
-    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [BOOKMARKS_FILE]";
+    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [BOOKMARKS-FILE]";
+}
+
+sub print_help {
+    print_usage ();
+        say "
+update the outline of DJVU-FILENAME.
+The format of the outline in BOOKMARKS-FILE is described in the README file.
+
+ Options:
+  -o, --output=FILE           do not modify DJVU-FILENAME and write the 
+                              bookmarked djvu file to FILE.
+  -c, --allow-comments        ignore all lines starting with a hash
+                              character (#) in BOOKMARKS-FILE.
+  -h, --help                  print this help screen.
+  -V, --version               print program version.
+
+The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed
+to '.bm'.
+ 
+Report bugs to FIXME";
 }
 
 sub print_version {
@@ -217,16 +236,4 @@ sub print_version {
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law."
-}
-
-sub print_help {
-    print_usage ();
-        say "
-FIXME
- Options:
-  -o, --output=FILE           do not modify DJVU-FILENAME and write the 
-                              bookmarked djvu file to FILE. 
-  -h, --help                  print this help screen
-  -V, --version               print program version
-FIXME: Report bugs to...";
 }
