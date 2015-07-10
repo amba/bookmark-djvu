@@ -136,6 +136,7 @@ sub write_djvused_outline {
 	if ($indent_depth > $prev_indent_depth + 1) {
 	    die "too mutch indentation in line $line_number:\n$line\n";
 	}
+	
 	$title = djvused_escape ($title);
 	
 	# print closing parenthesis for the previous entry

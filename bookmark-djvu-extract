@@ -126,8 +126,13 @@ sub prepare_title {
 }
 
 sub djvused_unescape {
+    # see djvused(1): "DJVUSED FILE FORMATS - Strings" 
+    # and perlrebackslash
     my $string = shift;
-    # FIXME: test this
+
+    # octal escape sequences
+    $string =~ s/\\([0-7]{3})/pack 'U', oct($1)/ge;
+    
     $string =~ s/\\(.)/
     if ($1 eq "\\" or $1 eq "\"") {
 	$1;
@@ -154,7 +159,8 @@ sub djvused_unescape {
 	"\r";
     }
     else {
-	die "unknown escape sequence, please report to $bug_address";
+	die "unknown escape sequence in '$string'
+please report to $bug_address";
     }
     /ge;
     return $string
