@@ -79,6 +79,11 @@ open my $in_fh, '<', $bookmarks_filename
     or die "cannot open $bookmarks_filename: $!\n";
 binmode $in_fh, ':encoding(UTF-8)';
 
+my $page_count = page_count ($djvu_filename);
+if (!$page_count) {
+    die "error: could not get page count\n"
+}
+    
 my $djvused_outline = write_djvused_outline ($in_fh);
 
 # run external commands
@@ -89,6 +94,23 @@ if ($djvu_filename ne $output_filename) {
 system_wrapper ("djvused", $output_filename, "-e",
 		"set-outline $djvused_outline", "-s");
 
+# argument: djvu filename
+# returns 0 on error
+sub page_count {
+    my $filename = shift;
+    my @command = ("djvused", $filename, "-e", "n");
+    
+    open my $fd, "-|", "djvused", $filename, "-e", "n"
+	or return 0;
+    my $count = <$fd>;
+    chomp ($count);
+    if (!close $fd) {
+	warn "djvused failed with status ", $? << 8, "\n";
+	return 0;
+    }
+    
+    return $count;
+}
 
 # returns filename
 sub write_djvused_outline {
@@ -132,6 +154,10 @@ sub write_djvused_outline {
 
 	my $title = $+{title};
 	my $page = $+{page} + $offset;
+	if ($page < 1 or $page > $page_count) {
+	    die "page number $page in line $line_number out of range ".
+		"(page count: $page_count)\n";
+	}
 	
 	if ($indent_depth > $prev_indent_depth + 1) {
 	    die "too mutch indentation in line $line_number:\n$line\n";
@@ -181,7 +207,7 @@ sub djvused_escape {
 }
 
 sub system_wrapper {
-    say "command: @_";
+    warn "command: @_\n";
     system (@_) == 0
 	or die "error: system failed: $?\n"
 }
