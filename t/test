@@ -9,11 +9,8 @@ use File::Temp qw/tempfile/;
 use utf8;
 use Test::More;
 
-(undef, my $djvu) = tempfile (UNLINK => 1);
-say "djvu: $djvu";
-
 # create empty djvu
-system_ok ("djvumake $djvu INFO=100,100,100");
+my $djvu = create_djvu (8, ".djvu");
 
 # ################################# #
 # compare files after set and get:  #
@@ -31,11 +28,8 @@ system_ok ("diff -C 3 $outline expected1");
 # check default filenames  #
 # ######################## #
 
-(undef, $djvu) = tempfile (SUFFIX => '.djvu', UNLINK => 1);
-say "djvu: $djvu";
+$djvu = create_djvu (8, ".djvu");
 
-# create empty djvu
-system_ok ("djvumake $djvu INFO=100,100,100");
 $outline = ($djvu =~ s/\.djvu$/.bm/r);
 say "outline: $outline";
     
@@ -55,5 +49,36 @@ done_testing ();
 
 sub system_ok {
     my $command = shift;
-    is(system ($command), 0, "command: $command");
+    is (system ($command), 0, "command: $command");
+}
+
+# arguments: page count, suffix
+# returns filename
+sub create_djvu {
+    my $page_count = shift;
+    my $suffix = shift;
+    
+    $page_count > 0 or $page_count = 1;
+    
+    # create one-page djvu file
+    (undef, my $filename) = tempfile (UNLINK => 1, SUFFIX => $suffix);
+    system_wrapper ("djvumake $filename INFO=100,100,100");
+
+    my $page;
+    if ($page_count > 1) {
+	(undef, $page) = tempfile (UNLINK => 1, SUFFIX => ".djvu");
+	system_wrapper ("djvumake $page INFO=100,100,100");
+    }
+    
+    for (2..$page_count) {
+	system_wrapper ("djvm -i $filename $page");
+    }
+
+    return $filename;
+}
+
+sub system_wrapper {
+    my $command = shift;
+    system ($command) == 0
+	or die "command '$command' failed with status ", $? >> 8, "\n";
 }

@@ -4,3 +4,9 @@ title 1
         title 3
 title 4
 \"	 (check escaping) 5
+Cover 1
+Preface 3
+Chapter 1 5
+    Subsect 1.1 6
+    Subsect 1.2 7
+        SubSubsect 1.2.1 8
