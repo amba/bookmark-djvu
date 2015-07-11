@@ -50,6 +50,8 @@ whitespace.
 
 Blank lines are ignored.
 
+The encoding has to be UTF-8.
+
 Note that with this format it's impossible to have trailing dots
 or whitespace in a title. Also it's impossible to have newlines in titles.
 Maybe we will provide YAML as an input/output format in the future.
