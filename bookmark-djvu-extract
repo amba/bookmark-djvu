@@ -73,14 +73,14 @@ extract_bookmarks ($djvused_fd, $output_fd)
     or die "no bookmarks found";
 
 close $djvused_fd
-    or die "djvused failed with exit status $?";
+    or die "djvused failed with exit status ", $? >> 8, "\n";
 
 sub extract_bookmarks {
     my $djvused_fd = shift;
     my $output_fd = shift;
     my $level = 0;
     my $line = <$djvused_fd>;
-    if ($line !~ /^\(bookmarks$/) {
+    if (!$line or $line !~ /^\(bookmarks$/) {
 	warn "no bookmarks found\n";
 	return 0;
     }
@@ -186,7 +186,7 @@ sub get_default_filename {
 }
 
 sub system_wrapper {
-    say "command: @_";
+    warn "command: @_\n";
     system (@_) == 0
 	or die "error: system failed: $?\n"
 }
