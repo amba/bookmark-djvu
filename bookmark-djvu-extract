@@ -199,7 +199,7 @@ sub print_help {
     print_usage ();
     say "
 extract the outline of DJVU-FILENAME.
-The format of the generated BOOKMARKS-FILE is described in the README file.
+The format of the generated BOOKMARKS-FILE is described in the README.
 
  Options:
   -o, --output=FILE           write bookmarks to FILE 
