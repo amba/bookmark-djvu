@@ -79,10 +79,8 @@ open my $in_fh, '<', $bookmarks_filename
     or die "cannot open $bookmarks_filename: $!\n";
 binmode $in_fh, ':encoding(UTF-8)';
 
-my $page_count = page_count ($djvu_filename);
-if (!$page_count) {
-    die "error: could not get page count\n"
-}
+my $page_count = page_count ($djvu_filename)
+    or die "error: could not get page count\n";
     
 my $djvused_outline = write_djvused_outline ($in_fh);
 
@@ -103,12 +101,12 @@ sub page_count {
     open my $fd, "-|", "djvused", $filename, "-e", "n"
 	or return 0;
     my $count = <$fd>;
-    chomp ($count);
     if (!close $fd) {
 	warn "djvused failed with status ", $? << 8, "\n";
 	return 0;
     }
-    
+
+    chomp ($count);
     return $count;
 }
 
