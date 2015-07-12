@@ -4,9 +4,6 @@ bookmark-djvu and bookmark-djvu-extract are wrappers around DjVuLibre's
 djvused(1) program. They allow for the simple modification and extraction
 of DjVu outlines (aka. bookmarks).
 
-The input format for bookmarking is close to what DjVuLibre's djvutxt(1)
-provides.
-
 INSTALL
 =======
 you only need djvused:
@@ -50,7 +47,7 @@ whitespace.
 
 Blank lines are ignored.
 
-The encoding has to be UTF-8.
+<TITLE> has to be encoded in UTF-8.
 
 Note that with this format it's impossible to have trailing dots
 or whitespace in a title. Also it's impossible to have newlines in titles.
