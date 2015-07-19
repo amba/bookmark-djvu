@@ -7,8 +7,12 @@ of DjVu outlines (aka. bookmarks).
 INSTALL
 =======
 you only need djvused:
-Debian, Ubuntu: $ apt-get install djvulibre-bin
-Fedora: $ yum install djvulibre perl-Test-Simple
+
+Debian, Ubuntu:
+$ apt-get install djvulibre-bin
+
+Fedora:
+$ yum install djvulibre perl-Test-Simple
 
 USAGE
 =====
