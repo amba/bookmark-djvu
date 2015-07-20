@@ -18,32 +18,53 @@ binmode STDOUT, ':encoding(UTF-8)';
 binmode STDIN, ':encoding(UTF-8)';
 binmode STDERR, ':encoding(UTF-8)';
 
-$_ = decode ('UTF-8', $_) for @ARGV;
-
 my $prog_name = basename $0;
 my $bug_address = "www.github.com/simon0x5b/bookmark-djvu/issues";
+
+sub print_usage {
+    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [BOOKMARKS-FILE]";
+}
+
+sub print_help {
+    print_usage ();
+        say "
+update the outline of DJVU-FILENAME.
+The format of BOOKMARKS-FILE is described in the README.
+
+ Options:
+  -o, --output=FILE           do not modify DJVU-FILENAME and write the 
+                              bookmarked djvu file to FILE.
+  -c, --allow-comments        ignore all lines starting with a hash
+                              character (#) in BOOKMARKS-FILE.
+  -h, --help                  print this help screen.
+  -V, --version               print program version.
+
+The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed
+to '.bm'.
+ 
+Report bugs to $bug_address";
+}
+
+sub print_version {
+    say "bookmark-djvu 0.1
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law."
+}
+
+$_ = decode ('UTF-8', $_) for @ARGV;
+
+
 my $output_filename;
 my $allow_comments = 0;
-my $print_help = 0;
-my $print_version = 0;
 
 GetOptions (
     "output|o=s" => \$output_filename,
-    "help|h" => \$print_help,
     "allow-comments|c" => \$allow_comments,
-    "version|V" => \$print_version,
+    "help|h" => sub {print_help (); exit},
+    "version|V" => sub {print_version (); exit},
     )
     or exit 1;
-
-if ($print_help) {
-    print_help ();
-    exit 0;
-}
-
-if ($print_version) {
-    print_version ();
-    exit 0;
-}
 
 if (!@ARGV) {
     print_usage ();
@@ -225,35 +246,4 @@ sub get_default_filename {
     }
 
     return $result_filename;
-}
-
-sub print_usage {
-    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [BOOKMARKS-FILE]";
-}
-
-sub print_help {
-    print_usage ();
-        say "
-update the outline of DJVU-FILENAME.
-The format of BOOKMARKS-FILE is described in the README.
-
- Options:
-  -o, --output=FILE           do not modify DJVU-FILENAME and write the 
-                              bookmarked djvu file to FILE.
-  -c, --allow-comments        ignore all lines starting with a hash
-                              character (#) in BOOKMARKS-FILE.
-  -h, --help                  print this help screen.
-  -V, --version               print program version.
-
-The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed
-to '.bm'.
- 
-Report bugs to $bug_address";
-}
-
-sub print_version {
-    say "bookmark-djvu 0.1
-License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
-This is free software: you are free to change and redistribute it.
-There is NO WARRANTY, to the extent permitted by law."
 }
