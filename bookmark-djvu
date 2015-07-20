@@ -58,18 +58,14 @@ $_ = decode ('UTF-8', $_) for @ARGV;
 my $output_filename;
 my $allow_comments = 0;
 
-GetOptions (
+my %opt_hash = (
     "output|o=s" => \$output_filename,
     "allow-comments|c" => \$allow_comments,
     "help|h" => sub {print_help (); exit},
     "version|V" => sub {print_version (); exit},
-    )
-    or exit 1;
+    );
 
-if (!@ARGV) {
-    print_usage ();
-    die "error: need at least one non-option argument\n";
-}
+print_usage () , exit (1) unless GetOptions (%opt_hash) and @ARGV;
 
 my $djvu_filename = $ARGV[0];
 if (! -e $djvu_filename) {
@@ -117,7 +113,6 @@ system_wrapper ("djvused", $output_filename, "-e",
 # returns 0 on error
 sub page_count {
     my $filename = shift;
-    my @command = ("djvused", $filename, "-e", "n");
     
     open my $fd, "-|", "djvused", $filename, "-e", "n"
 	or return 0;
