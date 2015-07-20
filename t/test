@@ -23,7 +23,7 @@ system_ok ("../bookmark-djvu-extract $djvu -o $outline");
 
 # compare
 system_ok ("diff -C 3 $outline expected1");
-
+unlink ($outline);
 # ######################## #
 # check default filenames  #
 # ######################## #
@@ -44,7 +44,7 @@ system_ok ("../bookmark-djvu-extract $djvu");
 
 # compare
 system_ok ("diff -C 3 $outline expected1");
-
+unlink ($outline);
 done_testing ();
 
 sub system_ok {
