@@ -68,14 +68,12 @@ my %opt_hash = (
 print_usage () , exit (1) unless GetOptions (%opt_hash) and @ARGV;
 
 my $djvu_filename = $ARGV[0];
-if (! -e $djvu_filename) {
+if (! -f $djvu_filename) {
     print_usage ();
     die "error: djvu file '$djvu_filename' does not exist\n";
 }
 
-if (!$output_filename) {
-    $output_filename = $djvu_filename;
-}
+$output_filename = $djvu_filename unless $output_filename;
 
 my $bookmarks_filename;
 
@@ -87,7 +85,7 @@ else {
 						".bm");
 }
 
-if (! -e $bookmarks_filename) {
+unless (-f $bookmarks_filename) {
     print_usage ();
     die "error: bookmarks file '$bookmarks_filename' does not exist\n";
 }
