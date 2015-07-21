@@ -8,10 +8,11 @@ use strict;
 # do not use floating point arithmetic in divisions
 use integer;
 use utf8;
-use Encode;
+use Encode qw/decode/;
 use Getopt::Long qw/:config no_ignore_case bundling/;
 use File::Temp qw/tempfile/;
-use File::Basename;
+use File::Basename qw/basename/;
+use YAML::XS qw/Load/;
 
 
 binmode STDOUT, ':encoding(UTF-8)'; 
@@ -34,13 +35,18 @@ The format of BOOKMARKS-FILE is described in the README.
  Options:
   -o, --output=FILE           do not modify DJVU-FILENAME and write the 
                               bookmarked djvu file to FILE.
+  -s, --simple-format         use simple format (default: YAML)
+  
+  options controlling simple format:
   -c, --allow-comments        ignore all lines starting with a hash
                               character (#) in BOOKMARKS-FILE.
+
+  general options:
   -h, --help                  print this help screen.
   -V, --version               print program version.
 
 The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed
-to '.bm'.
+to '.bm'. FIXME
  
 Report bugs to $bug_address";
 }
@@ -56,10 +62,13 @@ $_ = decode ('UTF-8', $_) for @ARGV;
 
 
 my $output_filename;
+my $use_simple_format = 0;
 my $allow_comments = 0;
+
 
 my %opt_hash = (
     "output|o=s" => \$output_filename,
+    "simple-format|s" => \$use_simple_format,
     "allow-comments|c" => \$allow_comments,
     "help|h" => sub {print_help (); exit},
     "version|V" => sub {print_version (); exit},
@@ -81,23 +90,25 @@ if ($ARGV[1]) {
     $bookmarks_filename = $ARGV[1];
 }
 else {
-    $bookmarks_filename = get_default_filename ($djvu_filename, ".djvu",
-						".bm");
+    $bookmarks_filename = 
+	get_default_filename ($djvu_filename, ".djvu", $use_simple_format ?
+			      ".bm" : ".outline");
 }
 
-unless (-f $bookmarks_filename) {
-    print_usage ();
-    die "error: bookmarks file '$bookmarks_filename' does not exist\n";
-}
 
 open my $in_fh, '<', $bookmarks_filename
     or die "cannot open $bookmarks_filename: $!\n";
-binmode $in_fh, ':encoding(UTF-8)';
 
 my $page_count = page_count ($djvu_filename)
     or die "error: could not get page count\n";
     
-my $djvused_outline = write_djvused_outline ($in_fh);
+my $djvused_outline;
+if ($use_simple_format) {
+    $djvused_outline = simple_format_to_djvused_outline ($in_fh);
+}
+else {
+    $djvused_outline = yaml_to_djvused_outline ($in_fh);
+}
 
 # run external commands
 if ($djvu_filename ne $output_filename) {
@@ -124,9 +135,10 @@ sub page_count {
     return $count;
 }
 
-# returns filename
-sub write_djvused_outline {
+# returns: filename
+sub simple_format_to_djvused_outline {
     my $in_fh = shift;
+    binmode $in_fh, ':encoding(UTF-8)';
     (my $out_fh, my $out_filename) = tempfile (UNLINK => 1);
     binmode $out_fh, ':encoding(UTF-8)';
 
@@ -198,6 +210,58 @@ sub write_djvused_outline {
     return $out_filename;
 }
 
+# arg: input filedescriptor  
+# returns output filename
+sub yaml_to_djvused_outline {
+    my $in_fh = shift;
+    (my $out_fh, my $out_filename) = tempfile (UNLINK => 1);
+    binmode $out_fh, ':encoding(UTF-8)';
+    
+    my $outline = Load (do {local $/; local $_ = <$in_fh>});
+        
+    print {$out_fh} "(bookmarks";
+
+    if ($outline) {
+	array_ref_to_djvused_outline ($out_fh, $outline);
+    }
+    else {
+	warn "no input, removing outline\n";
+    }
+    
+    print {$out_fh} "\n)\n";
+    return $out_filename;
+}
+
+# print djvused outline recursively from array ref
+# args: output file descriptor, arrayref 
+sub array_ref_to_djvused_outline {
+    my $out_fh = shift;
+    my $outline = shift;
+    
+    unless (ref ($outline) eq "ARRAY") {
+	die "array_ref_to_djvused_outline: arg not an array ref";
+    }
+    
+    for my $hashref (@{$outline}) {
+	my $title = $hashref->{title} or die "missing title in outline hash";
+	$title = djvused_escape ($title);
+	my $page = $hashref->{page};
+	if ($page < 1 or $page > $page_count) {
+	    die "page number $page out of range ".
+		"(page count: $page_count)\n";
+	}  
+	
+	# print out this outline item
+	print {$out_fh} qq{\n("$title" "#$page"};
+	
+	if ($hashref->{kids}) {
+	    array_ref_to_djvused_outline ($out_fh, $hashref->{kids});
+	}
+
+	print {$out_fh} ")";
+    }
+}
+    
 sub djvused_escape {
     # see djvused(1): "DJVUSED FILE FORMATS - Strings" 
     # and perlrebackslash

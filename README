@@ -1,30 +1,62 @@
 ABOUT
 =====
 bookmark-djvu and bookmark-djvu-extract are wrappers around DjVuLibre's
-djvused(1) program. They allow for the simple modification and extraction
-of DjVu outlines (aka. bookmarks).
+djvused(1) program. They allow simple modification and extraction
+of DjVu outlines.
 
 INSTALL
 =======
-you only need djvused:
+you only need djvused and YAML::XS:
 
-Debian, Ubuntu:
-$ apt-get install djvulibre-bin
+dpkg-based (Debian, Ubuntu):
+$ apt-get install djvulibre-bin libyaml-libyaml-perl
 
-Fedora:
-$ yum install djvulibre perl-Test-Simple
+rpm-based (Fedora):
+$ yum install djvulibre perl-YAML-LibYAML perl-Test-Simple
 
 USAGE
 =====
-run './bookmark-djvu --help' and './bookmark-djvu-extract --help' for usage
-and commandline option information.
+run
+  $ ./bookmark-djvu --help
+and
+  $ ./bookmark-djvu-extract --help
+for usage and command-line option information.
 
+INPUT/OUTPUT FORMATS
+====================
+Two output formats are supported: YAML (see wikipedia.org/wiki/YAML) and our
+own 'simple format'.
 
-INPUT/OUTPUT FORMAT
-===================
-example input file:
+Both have in common:
+- encoding must be UTF-8.
+- page numbering starts with 1. bookmark-djvu will complain if a page number
+is out of range.
+
+YAML
+====
+%< %< %< %< %< %< %< %< %< %<
+- title: Cover
+  page: 1
+- title: Preface
+  page: 3
+- title: Chapter 1
+  page: 5
+  kids:
+    - title: Subsect 1.1
+      page: 6
+    - title: Subsect 1.2
+      page: 7
+      kids:
+        - title: SubSubsect 1.2.1
+          page: 8
+- title: Index
+  page: 9
 %< %< %< %< %< %< %< %< %< %<
 
+SIMPLE FORMAT
+=============
+The same outline as above in simple format:
+%< %< %< %< %< %< %< %< %< %<
 Cover 1
 Preface . . . 3
 d=4
@@ -33,34 +65,35 @@ Chapter 1 1
     Subsect 1.1 ......2
     Subsect 1.2 3
         SubSubsect 1.2.1	4
-
+Index: 5
 %< %< %< %< %< %< %< %< %< %< 
 
 each outline item is of the form
 <INDENTATION> <TITLE> <SEPARATOR> <PAGE-NUMBER>.
 
-Page numbering starts with 1.
-
 Child outline items are indented with four spaces.
 
-A line of the form 'd=NUMBER' will add NUMBER to all following PAGE-NUMBERS
-until the next 'd=NUMBER' marker or the end of file. NUMBER can be negative.
+A line of the form 'd=NUMBER' will add NUMBER to all following PAGE-NUMBERs
+until the next 'd=NUMBER' marker or end of file. NUMBER can be negative.
 
 The separator between <TITLE> and <PAGE-NUMBER>  consists of dots and/or
 whitespace.
 
-Blank lines are ignored.
-
-<TITLE> has to be encoded in UTF-8.
+lines containing only whitespace are ignored.
 
 Note that with this format it's impossible to have trailing dots
 or whitespace in a title. Also it's impossible to have newlines in titles.
-Maybe we will provide YAML as an input/output format in the future.
+Use YAML format if you need this. 
 
 TESTS
 =====
 the tests are run with
 $ cd t/ && ./test
+
+KNOWN BUGS
+==========
+bookmark-djvu-extract produces YAML with alphabetically ordered mappings, in
+contrast to the more sane ordering used in the above example.
 
 LICENSE
 =======
@@ -77,8 +110,3 @@ LICENSE
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-Copyright (C) 2014, 2015 AUTHORS
-(see the AUTHORS file for the list of contributers)
-

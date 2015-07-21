@@ -8,59 +8,77 @@ use strict;
 use utf8;
 use Getopt::Long qw/:config no_ignore_case bundling/;
 use File::Basename;
-use Encode;
+use Encode qw/decode/;
+use YAML::XS;
 
 binmode STDOUT, ':encoding(UTF-8)'; 
 binmode STDIN, ':encoding(UTF-8)';
 binmode STDERR, ':encoding(UTF-8)';
 
-$_ = decode ('UTF-8', $_) for @ARGV;
-
 my $prog_name = basename $0;
 my $bug_address = "www.github.com/simon0x5b/bookmark-djvu/issues";
-my $output_filename;
-my $print_help = 0;
-my $print_version = 0;
 
-GetOptions (
-    "output|o=s" => \$output_filename,
-    "help|h" => \$print_help,
-    "version|V" => \$print_version,
-    )
-    or exit 1;
-
-if ($print_help) {
-    print_help ();
-    exit 0;
+sub print_usage {
+    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [-o BOOKMARKS_FILE]";
 }
 
-if ($print_version) {
-    print_version ();
-    exit 0;
-}
-
-if (!@ARGV) {
+sub print_help {
     print_usage ();
-    die "error: need at least one non-option argument\n";
+    say "
+extract the outline of DJVU-FILENAME.
+The format of the generated BOOKMARKS-FILE is described in the README.
+
+ Options:
+  -o, --output=FILE           write bookmarks to FILE 
+  -s, --simple-format         dump outline in simple format (default: YAML)
+  -h, --help                  print this help screen
+  -V, --version               print program version
+
+The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed
+to '.bm'. FIXME
+
+Report bugs to $bug_address";
 }
+
+sub print_version {
+    say "bookmark-djvu 0.1
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law."
+}
+
+$_ = decode ('UTF-8', $_) for @ARGV;
+
+my $output_filename;
+my $use_simple_format = 0;
+
+my %opt_hash = (
+    "output|o=s" => \$output_filename,
+    "simple-format|s" => \$use_simple_format,
+    "help|h" => sub {print_help (); exit 0},
+    "version|V" => sub {print_version (); exit 0},
+    );
+
+print_usage (), exit (1) unless GetOptions (%opt_hash) and @ARGV;
 
 my $djvu_filename = $ARGV[0];
-if (! -e $djvu_filename) {
+if (! -f $djvu_filename) {
     print_usage ();
     die "error: djvu file '$djvu_filename' does not exist\n";
 }
 
 if (!$output_filename) {
-    $output_filename = get_default_filename ($djvu_filename, ".djvu", ".bm");
+    $output_filename =
+	get_default_filename ($djvu_filename, ".djvu", $use_simple_format ?
+			      ".bm" : ".outline");
     if (-e $output_filename) {
 	die  "won't overwrite existing file '$output_filename'. " .
-	    "Use a '-o FILE' option!";
+	    "Use the '-o FILE' option!";
     }
 }
 
 open my $output_fd, ">", $output_filename
     or die "cannot open file '$output_filename': $!";
-binmode $output_fd, ':encoding(UTF-8)';
 
 # start extracting bookmarks with djvused in a pipe
 open my $djvused_fd, "-|", ("djvused", $djvu_filename, "-u", "-e",
@@ -68,22 +86,35 @@ open my $djvused_fd, "-|", ("djvused", $djvu_filename, "-u", "-e",
     or die "could not start djvused: $!\n";
 binmode $djvused_fd, ':encoding(UTF-8)';
 
-    
-extract_bookmarks ($djvused_fd, $output_fd)
-    or die "no bookmarks found";
+
+my $outline_items = parse_djvused_output ($djvused_fd);
+die "no outline found" unless @$outline_items;
+
 
 close $djvused_fd
     or die "djvused failed with exit status ", $? >> 8, "\n";
 
-sub extract_bookmarks {
+if ($use_simple_format) {
+    dump_to_simple_format ($output_fd, $outline_items);
+}
+else {
+    dump_to_yaml ($output_fd, $outline_items);
+}
+
+
+# arg: open file descriptor to djvused
+# returns: arrayref of hashrefs, each describing level, title and page of an
+# outline item.
+sub parse_djvused_output {
     my $djvused_fd = shift;
-    my $output_fd = shift;
     my $level = 0;
     my $line = <$djvused_fd>;
+
     if (!$line or $line !~ /^\(bookmarks$/) {
 	warn "no bookmarks found\n";
-	return 0;
+	return 1;
     }
+    my $outline_items = [];
     while ($line = <$djvused_fd>) {
 	chomp $line;
 	$line =~ /^\s*\("(?<title>.+)"$/
@@ -92,21 +123,30 @@ Please report to $bug_address\n";
 	
 	my $title = djvused_unescape ($+{title});
 	
-	$title = prepare_title ($title);
-	
-	print {$output_fd} "    "x($level) . $title;
-
 	$line = <$djvused_fd>;
 
 	$line =~ /\s*"#(?<page>[0-9]+)"(?<close>(\s*\))*)\s*$/
 	    or die "line '$line' in djvused output does not match.
 Please report to $bug_address\n";
-	print {$output_fd} " $+{page}\n";
+	push @$outline_items, {level => $level, title => $title,
+			       page => $+{page}};
 	$level -= ($+{close} =~ tr/\)//) - 1;
     }
     
-    return 1;
+    return $outline_items;
 }
+
+sub dump_to_simple_format {
+    my $out_fd = shift;
+    my $outline_items = shift;
+    binmode $out_fd, ':encoding(UTF-8)';
+    for my $outline (@$outline_items) {
+	print {$out_fd} "    "x($outline->{level}),
+	prepare_title ($outline->{title}),
+	, " $outline->{page}\n";
+    }
+}
+
 
 sub prepare_title {
     my $title = shift;
@@ -125,6 +165,52 @@ sub prepare_title {
     return $title;
 }
 
+
+sub dump_to_yaml {
+    my $out_fd = shift;
+    my $input_array = shift;
+    (my $array, undef) = get_recursive_array ($input_array, 0);
+    print {$out_fd}  Dump ($array);
+}
+
+# recursively convert flat array into nested data structure
+# args: input array ref, index to start
+# returns: output array ref, following index
+sub get_recursive_array {
+    my $input_array = shift;
+    my $start = shift;
+    my $index = $start;
+    my $last = $#$input_array;
+    my $level = $input_array->[$index]{level};
+    my $result_array = [];
+    while (1) {
+	
+	last if $index > $last;
+	my $next_level = $input_array->[$index]{level};
+	die "error in get_recursive_array" if $next_level > $level;
+	
+	last if $next_level < $level;
+
+	my $outline_item = {title => $input_array->[$index]{title},
+			    page => $input_array->[$index]{page}};
+
+    
+	if ($index + 1 <= $last 
+	    && $input_array->[$index + 1]{level} > $level) {
+	    ($outline_item->{kids}, $index) =
+		get_recursive_array ($input_array, $index + 1);
+	}
+	else {
+	    ++$index;
+	}
+	
+	push @$result_array, $outline_item;
+    }
+
+    return ($result_array, $index);
+}
+
+  
 sub djvused_unescape {
     # see djvused(1): "DJVUSED FILE FORMATS - Strings" 
     # and perlrebackslash
@@ -183,39 +269,5 @@ sub get_default_filename {
     }
 
     return $result_filename;
-}
-
-sub system_wrapper {
-    warn "command: @_\n";
-    system (@_) == 0
-	or die "error: system failed: $?\n"
-}
-
-sub print_usage {
-    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [-o BOOKMARKS_FILE]";
-}
-
-sub print_help {
-    print_usage ();
-    say "
-extract the outline of DJVU-FILENAME.
-The format of the generated BOOKMARKS-FILE is described in the README.
-
- Options:
-  -o, --output=FILE           write bookmarks to FILE 
-  -h, --help                  print this help screen
-  -V, --version               print program version
-
-The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed
-to '.bm'.
-
-Report bugs to $bug_address";
-}
-
-sub print_version {
-    say "bookmark-djvu 0.1
-License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
-This is free software: you are free to change and redistribute it.
-There is NO WARRANTY, to the extent permitted by law."
 }
 

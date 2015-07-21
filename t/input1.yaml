@@ -1,0 +1,15 @@
+---
+- page: 1
+  title: title
+- kids:
+    - page: 3
+      title: αβυ
+    - kids:
+        - title: title.1
+          page: 4
+      page: 4
+      title: title
+  page: 2
+  title: äöü
+- page: 5
+  title: last

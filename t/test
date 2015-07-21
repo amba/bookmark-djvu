@@ -8,6 +8,7 @@ use strict;
 use File::Temp qw/tempfile/;
 use utf8;
 use Test::More;
+use YAML::XS qw/LoadFile/;
 
 # create empty djvu
 my $djvu = create_djvu (8, ".djvu");
@@ -16,13 +17,13 @@ my $djvu = create_djvu (8, ".djvu");
 # compare files after set and get:  #
 # ################################# #
 
-system_ok ("../bookmark-djvu $djvu input1");
+system_ok ("../bookmark-djvu -s $djvu input1");
 
 (undef, my $outline) = tempfile (UNLINK => 1);
-system_ok ("../bookmark-djvu-extract $djvu -o $outline");
+system_ok ("../bookmark-djvu-extract -s $djvu -o $outline");
 
 # compare
-system_ok ("diff -C 3 $outline expected1");
+files_ok ($outline, "expected1");
 unlink ($outline);
 # ######################## #
 # check default filenames  #
@@ -36,6 +37,38 @@ say "outline: $outline";
 system_ok ("cp input1 $outline");
 # compare files after set and get:
  
+system_ok ("../bookmark-djvu -s $djvu");
+
+unlink ($outline);
+
+system_ok ("../bookmark-djvu-extract -s $djvu");
+
+# compare
+files_ok ($outline, "expected1");
+unlink ($outline);
+
+# #### #
+# YAML #
+# #### #
+
+my $djvu = create_djvu (5, ".djvu");
+
+system_ok ("../bookmark-djvu $djvu input1.yaml");
+
+(undef, my $outline) = tempfile;#FIXME (UNLINK => 1);
+system_ok ("../bookmark-djvu-extract  $djvu -o $outline");
+yaml_ok ("input1.yaml", $outline);
+
+# default filenames
+
+$djvu = create_djvu (5, ".djvu");
+
+$outline = ($djvu =~ s/\.djvu$/.outline/r);
+say "outline: $outline";
+    
+system_ok ("cp input1.yaml $outline");
+# compare files after set and get:
+ 
 system_ok ("../bookmark-djvu $djvu");
 
 unlink ($outline);
@@ -43,13 +76,24 @@ unlink ($outline);
 system_ok ("../bookmark-djvu-extract $djvu");
 
 # compare
-system_ok ("diff -C 3 $outline expected1");
+yaml_ok ("input1.yaml", $outline);
 unlink ($outline);
 done_testing ();
+
+sub yaml_ok {
+    my $file1 = shift;
+    my $file2 = shift;
+    is_deeply (LoadFile ($file1), LoadFile ($file2),
+	       "yaml_ok: file1=$file1, file2=$file2");
+}
 
 sub system_ok {
     my $command = shift;
     is (system ($command), 0, "command: $command");
+}
+
+sub files_ok {
+    system_ok ("diff -C 3 $_[0] $_[1]");
 }
 
 # arguments: page count, suffix
