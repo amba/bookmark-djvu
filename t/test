@@ -55,7 +55,7 @@ my $djvu = create_djvu (5, ".djvu");
 
 system_ok ("../bookmark-djvu $djvu input1.yaml");
 
-(undef, my $outline) = tempfile;#FIXME (UNLINK => 1);
+(undef, my $outline) = tempfile (UNLINK => 1);
 system_ok ("../bookmark-djvu-extract  $djvu -o $outline");
 yaml_ok ("input1.yaml", $outline);
 
