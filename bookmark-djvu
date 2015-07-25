@@ -45,8 +45,9 @@ The format of BOOKMARKS-FILE is described in the README.
   -h, --help                  print this help screen.
   -V, --version               print program version.
 
-The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed
-to '.bm'. FIXME
+The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed to
+- '.outline' for YAML mode (default).
+- '.bm' for simple format.
  
 Report bugs to $bug_address";
 }
