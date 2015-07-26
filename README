@@ -1,12 +1,12 @@
 ABOUT
 =====
 bookmark-djvu and bookmark-djvu-extract are wrappers around DjVuLibre's
-djvused(1) program. They allow simple modification and extraction
+djvused program. They allow simple modification and extraction
 of DjVu outlines.
 
 INSTALL
 =======
-you only need djvused and YAML::XS:
+you need djvused, perl >=5.14 and YAML::XS:
 
 dpkg-based (Debian, Ubuntu):
 $ apt-get install djvulibre-bin libyaml-libyaml-perl
