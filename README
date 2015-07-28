@@ -30,7 +30,7 @@ Both have in common:
 
 *** YAML Format
 
-sample outline:
+Sample outline:
 #+BEGIN_EXAMPLE
 - title: Cover
   page: 1
@@ -90,7 +90,7 @@ Known to pass on:
 
 ** Known Bugs
 
-- bookmark-djvu-extract produces YAML with alphabetically ordered mappings, in contrast to the more sane ordering used in the above example.
+- bookmark-djvu-extract produces YAML with alphabetically ordered mappings, in contrast to the more sane ordering used above.
 
 ** Copying
 
