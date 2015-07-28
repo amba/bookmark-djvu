@@ -1,5 +1,5 @@
 * bookmark-djvu
-~bookmark-djvu~ and ~bookmark-djvu-extract~ are [[https://en.wikipedia.org/wiki/YAML][YAML]]ized wrappers around
+~bookmark-djvu~ and ~bookmark-djvu-extract~ are [[https://en.wikipedia.org/wiki/YAML][YAML]] enabled wrappers around
 [[http://djvu.sourceforge.net/doc/man/djvused.html][DjVuLibre's djvused program]]. They allow simple modification and extraction
 of DjVu outlines.
 
@@ -25,8 +25,8 @@ and
 Two formats are supported: [[https://en.wikipedia.org/wiki/YAML][YAML]] and our own =simple format=.
 
 Both have in common:
-- encoding must be UTF-8.
-- page numbering starts with 1. bookmark-djvu will complain if a page number is out of range.
+- Encoding must be UTF-8.
+- Page numbering starts with 1. bookmark-djvu will complain if a page number is out of range.
 
 *** YAML Format
 
@@ -65,7 +65,7 @@ Chapter 1 1
 Index: 5
 #+END_EXAMPLE
 Note:
-- each outline item is of the form =<INDENTATION> <TITLE> <SEPARATOR> <PAGE-NUMBER>=.
+- Each outline item is of the form =<INDENTATION> <TITLE> <SEPARATOR> <PAGE-NUMBER>=.
 
 - Child outline items are indented with =four spaces=.
 
@@ -73,13 +73,13 @@ Note:
 
 - =SEPARATOR= consists of dots and/or whitespace.
 
-- lines containing only whitespace are ignored.
+- Lines containing only whitespace are ignored.
 
 - Note that with this format it's impossible to have trailing dots or whitespace in a title. Also it's impossible to have line feeds in titles. Use YAML format if you need this. 
 
 ** Tests
 
-the tests are run with
+Run the tests with
  : $ cd t/ && ./test
 
 Known to pass on:
@@ -90,8 +90,7 @@ Known to pass on:
 
 ** Known Bugs
 
-bookmark-djvu-extract produces YAML with alphabetically ordered mappings, in
-contrast to the more sane ordering used in the above example.
+- bookmark-djvu-extract produces YAML with alphabetically ordered mappings, in contrast to the more sane ordering used in the above example.
 
 ** Copying
 
