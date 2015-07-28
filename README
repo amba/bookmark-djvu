@@ -1,5 +1,5 @@
 * bookmark-DjVu
-~bookmark-djvu~ and ~bookmark-djvu-extract~ are [[https://en.wikipedia.org/wiki/YAML][YAML]] enabled wrappers around
+=bookmark-djvu= and =bookmark-djvu-extract= are [[https://en.wikipedia.org/wiki/YAML][YAML]] -enabled wrappers around
 [[http://djvu.sourceforge.net/doc/man/djvused.html][DjVuLibre's djvused program]]. They allow simple modification and extraction
 of DjVu outlines.
 
@@ -26,10 +26,10 @@ for help.
 Two formats are supported: [[https://en.wikipedia.org/wiki/YAML][YAML]] and our own =simple format=.
 
 Both have in common:
-- Encoding must be UTF-8.
+- Encoding must be _UTF-8_.
 - Page numbering starts with 1.
-- bookmark-djvu will complain if a page number is out of range.
-- To remove outlines, run bookmark-djvu with empty input file (or /dev/null).
+- =bookmark-djvu= will complain if a page number is out of range.
+- To remove outlines, run =bookmark-djvu= with empty input file (or /dev/null).
 
 *** YAML Format
 
@@ -70,7 +70,7 @@ Index: 5
 Note:
 - Each outline item is of the form =<INDENTATION> <TITLE> <SEPARATOR> <PAGE-NUMBER>=.
 
-- Child outline items are indented with =four spaces=.
+- Child outline items are indented with _four spaces_.
 
 - A line of the form =d=NUMBER= will add =NUMBER= to all following page numbers until the next =d=NUMBER= marker or end of file. =NUMBER= can be negative.
 
