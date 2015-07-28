@@ -16,9 +16,10 @@ Install the djvulibre tools and the YAML::XS Perl module:
 
 ** Usage
 Run
-  ~$ ./bookmark-djvu --help~
+  : $ ./bookmark-djvu --help
 and
-  ~$ ./bookmark-djvu-extract --help~.
+  : $ ./bookmark-djvu-extract --help
+for help.
 
 
 ** Input/Output Formats
