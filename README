@@ -27,7 +27,9 @@ Two formats are supported: [[https://en.wikipedia.org/wiki/YAML][YAML]] and our 
 
 Both have in common:
 - Encoding must be UTF-8.
-- Page numbering starts with 1. bookmark-djvu will complain if a page number is out of range.
+- Page numbering starts with 1.
+- bookmark-djvu will complain if a page number is out of range.
+- To remove outlines, run bookmark-djvu with empty input file (or /dev/null).
 
 *** YAML Format
 
