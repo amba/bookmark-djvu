@@ -19,13 +19,13 @@ my $prog_name = basename $0;
 my $bug_address = "www.github.com/simon0x5b/bookmark-djvu/issues";
 
 sub print_usage {
-    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [-o BOOKMARKS_FILE]";
+    say "Usage: $prog_name [OPTIONS] DJVU [-o BOOKMARKS_FILE]";
 }
 
 sub print_help {
     print_usage ();
     say "
-extract the outline of DJVU-FILENAME.
+extract the outline of DJVU.
 The format of the generated BOOKMARKS-FILE is described in the README.
 
  Options:

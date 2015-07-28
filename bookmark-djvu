@@ -23,29 +23,29 @@ my $prog_name = basename $0;
 my $bug_address = "www.github.com/simon0x5b/bookmark-djvu/issues";
 
 sub print_usage {
-    say "Usage: $prog_name [OPTIONS] DJVU-FILENAME [BOOKMARKS-FILE]";
+    say "Usage: $prog_name [OPTIONS] DJVU [BOOKMARKS-FILE]";
 }
 
 sub print_help {
     print_usage ();
         say "
-update the outline of DJVU-FILENAME.
+update the outline of DJVU.
 The format of BOOKMARKS-FILE is described in the README.
 
  Options:
-  -o, --output=FILE           do not modify DJVU-FILENAME and write the 
+  -o, --output=FILE           do not modify DJVU and write the 
                               bookmarked djvu file to FILE.
   -s, --simple-format         use simple format (default: YAML)
   
-  options controlling simple format:
+ options controlling simple format:
   -c, --allow-comments        ignore all lines starting with a hash
                               character (#) in BOOKMARKS-FILE.
 
-  general options:
+ general options:
   -h, --help                  print this help screen.
   -V, --version               print program version.
 
-The default for BOOKMARKS-FILE is DJVU-FILENAME with the suffix changed to
+The default for BOOKMARKS-FILE is DJVU with the suffix changed to
 - '.outline' for YAML mode (default).
 - '.bm' for simple format.
  
