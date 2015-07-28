@@ -1,4 +1,4 @@
-* bookmark-djvu
+* bookmark-DjVu
 ~bookmark-djvu~ and ~bookmark-djvu-extract~ are [[https://en.wikipedia.org/wiki/YAML][YAML]] enabled wrappers around
 [[http://djvu.sourceforge.net/doc/man/djvused.html][DjVuLibre's djvused program]]. They allow simple modification and extraction
 of DjVu outlines.
