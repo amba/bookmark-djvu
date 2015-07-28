@@ -26,7 +26,7 @@ for help.
 Two formats are supported: [[https://en.wikipedia.org/wiki/YAML][YAML]] and our own =simple format=.
 
 Both have in common:
-- Encoding must be _UTF-8_.
+- Encoding must be *UTF-8*.
 - Page numbering starts with 1.
 - =bookmark-djvu= will complain if a page number is out of range.
 - To remove outlines, run =bookmark-djvu= with empty input file (or /dev/null).
@@ -70,7 +70,7 @@ Index: 5
 Note:
 - Each outline item is of the form =<INDENTATION> <TITLE> <SEPARATOR> <PAGE-NUMBER>=.
 
-- Child outline items are indented with _four spaces_.
+- Child outline items are indented with *four spaces*.
 
 - A line of the form =d=NUMBER= will add =NUMBER= to all following page numbers until the next =d=NUMBER= marker or end of file. =NUMBER= can be negative.
 
