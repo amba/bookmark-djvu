@@ -96,7 +96,7 @@ Known to pass on:
 - bookmark-djvu-extract produces YAML with alphabetically ordered mappings, in contrast to the more sane ordering used above.
 
 ** Copying
-#+BEGIN_VERSE
+#+BEGIN_EXAMPLE
      This program is free software: you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
      the Free Software Foundation, either version 3 of the License, or
@@ -108,8 +108,8 @@ Known to pass on:
      GNU General Public License for more details.
 
      You should have received a copy of the GNU General Public License
-     along with this program.  If not, see [[http://www.gnu.org/licenses/]].
-#+END_VERSE
+     along with this program.  If not, see http://www.gnu.org/licenses/.
+#+END_EXAMPLE
 Copyright (C) 2015, Simon Reinhardt
 
 #+STARTUP: content
