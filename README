@@ -91,8 +91,10 @@ Known to pass on:
 - Ubuntu Vivid and later
 
 
-** Known Bugs
+** Bugs
+Please report bugs at [[https://github.com/simon0x5b/bookmark-djvu/issues]].
 
+*** Known Bugs
 - bookmark-djvu-extract produces YAML with alphabetically ordered mappings, in contrast to the more sane ordering used above.
 
 ** Copying
