@@ -7,9 +7,9 @@ use warnings;
 use strict;
 use utf8;
 use Getopt::Long qw/:config no_ignore_case bundling/;
-use File::Basename;
+use File::Basename qw/basename/;
 use Encode qw/decode/;
-use YAML::XS;
+use YAML::XS qw/Dump/;
 
 binmode STDOUT, ':encoding(UTF-8)'; 
 binmode STDIN, ':encoding(UTF-8)';
@@ -69,9 +69,9 @@ if (! -f $djvu_filename) {
 }
 
 if (!$output_filename) {
+    my $suffix = $use_simple_format ? ".bm" : ".outline";
     $output_filename =
-	get_default_filename ($djvu_filename, ".djvu", $use_simple_format ?
-			      ".bm" : ".outline");
+	get_default_filename ($djvu_filename, ".djvu", $suffix);
     if (-e $output_filename) {
 	die  "won't overwrite existing file '$output_filename'. " .
 	    "Use the '-o FILE' option!";
@@ -83,8 +83,8 @@ open my $output_fd, ">", $output_filename
 
 # start extracting bookmarks with djvused in a pipe
 open my $djvused_fd, "-|", ("djvused", $djvu_filename, "-u", "-e",
-			    "print-outline")
-    or die "could not start djvused: $!\n";
+    "print-outline") or die "could not start djvused: $!\n";
+
 binmode $djvused_fd, ':encoding(UTF-8)';
 
 
@@ -92,7 +92,7 @@ my $outline_items = parse_djvused_output ($djvused_fd);
 die "no outline found" unless @$outline_items;
 
 
-close $djvused_fd
+close $djvused_fd 
     or die "djvused failed with exit status ", $? >> 8, "\n";
 
 if ($use_simple_format) {
@@ -113,7 +113,7 @@ sub parse_djvused_output {
 
     if (!$line or $line !~ /^\(bookmarks$/) {
 	warn "no bookmarks found\n";
-	return 1;
+	return [];
     }
     my $outline_items = [];
     while ($line = <$djvused_fd>) {
@@ -213,48 +213,51 @@ sub get_recursive_array {
 
   
 sub djvused_unescape {
-    # see djvused(1): "DJVUSED FILE FORMATS - Strings" 
+    # see in '$ man djvused': "DJVUSED FILE FORMATS - Strings" 
     # and perlrebackslash
     my $string = shift;
 
-    $string =~ s/\\([0-7]{3}|.)/
-    if ($1 eq "\\" or $1 eq "\"") {
-	$1;
-    }
-    elsif (length ($1) == 3) {
-        # octal escape sequences
-        pack 'U', oct($1);
-    }
-    elsif ($1 eq "a") {
-	"\a";
-    }
-    elsif ($1 eq "b") {
-	"\b";
-    }
-    elsif ($1 eq "t") {
-	"\t";
-    }
-    elsif ($1 eq "n") {
-	"\n";
-    }
-    elsif ($1 eq "v") {
-	"\x{0b}";
-    }
-    elsif ($1 eq "f") {
-	"\f";
-    }
-    elsif ($1 eq "r") {
-	"\r";
-    }
-    else {
- 	die "unknown escape sequence '\\$1' in '$string'
- please report to $bug_address";
-    }
-    /ge;
-    return $string
+    $string =~ s/\\([0-7]{3}|.)/expand_escape_sequence ($1)/ge;
+    
+    return $string;
 }
 
-
+sub expand_escape_sequence {
+    my ($string) = @_;
+    
+    if ($string eq "\\" || $string eq '"') {
+	return $string;
+    }
+    elsif (length ($string) == 3) {
+        # octal escape sequence
+        return pack 'U', oct ($string);
+    }
+    elsif ($string eq "a") {
+	return "\a";
+    }
+    elsif ($string eq "b") {
+	return "\b";
+    }
+    elsif ($string eq "t") {
+	return "\t";
+    }
+    elsif ($string eq "n") {
+	return "\n";
+    }
+    elsif ($string eq "v") {
+	return "\x{0b}";
+    }
+    elsif ($string eq "f") {
+	return "\f";
+    }
+    elsif ($string eq "r") {
+	return "\r";
+    }
+    else {
+ 	die "unknown escape sequence '\\$string' in '$string'
+ please report to $bug_address";
+    }
+}
 
 sub get_default_filename {
     my $filename = shift;
