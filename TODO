@@ -1,7 +1,7 @@
 * [0/3] TODO 
- - [ ] use autodie ?
- - [ ] rename 'fd' to 'handle'
+ - [ ] rename 'fd' to 'handle' in both scripts
  - [ ] cleanup get_recursive_array
+ - [ ] use single s///ge in djvused_escape? benchmark this
  - [ ] THANKS in readme
 
 # Local Variables:
