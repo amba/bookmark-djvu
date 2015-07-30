@@ -25,9 +25,8 @@ system_ok ("../bookmark-djvu-extract -s $djvu -o $outline");
 # compare
 files_ok ($outline, "expected1");
 unlink ($outline);
-# ######################## #
-# check default filenames  #
-# ######################## #
+
+# default filenames
 
 $djvu = create_djvu (8, ".djvu");
 
@@ -67,6 +66,7 @@ $outline = ($djvu =~ s/\.djvu$/.outline/r);
 say "outline: $outline";
     
 system_ok ("cp input1.yaml $outline");
+
 # compare files after set and get:
  
 system_ok ("../bookmark-djvu $djvu");
@@ -78,6 +78,8 @@ system_ok ("../bookmark-djvu-extract $djvu");
 # compare
 yaml_ok ("input1.yaml", $outline);
 unlink ($outline);
+
+
 done_testing ();
 
 sub yaml_ok {

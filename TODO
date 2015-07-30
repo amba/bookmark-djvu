@@ -2,6 +2,8 @@
  - [ ] rename 'fd' to 'handle' in both scripts
  - [ ] cleanup get_recursive_array
  - [ ] use single s///ge in djvused_escape? benchmark this
+ - [ ] test extract return value with empty outline
+ - [ ] test removing of outline
  - [ ] THANKS in readme
 
 # Local Variables:
