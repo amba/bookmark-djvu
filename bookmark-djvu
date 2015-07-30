@@ -91,9 +91,9 @@ if ($ARGV[1]) {
     $bookmarks_filename = $ARGV[1];
 }
 else {
+    my $suffix = $use_simple_format ? ".bm" : ".outline";
     $bookmarks_filename = 
-	get_default_filename ($djvu_filename, ".djvu", $use_simple_format ?
-			      ".bm" : ".outline");
+	get_default_filename ($djvu_filename, ".djvu", $suffix);
 }
 
 
