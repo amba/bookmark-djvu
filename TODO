@@ -1,0 +1,9 @@
+* [0/3] TODO 
+ - [ ] use autodie ?
+ - [ ] rename 'fd' to 'handle'
+ - [ ] cleanup get_recursive_array
+ - [ ] THANKS in readme
+
+# Local Variables:
+# mode: org
+# End:
