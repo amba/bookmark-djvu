@@ -1,10 +1,10 @@
-* [0/3] TODO 
- - [ ] rename 'fd' to 'handle' in both scripts
- - [ ] cleanup get_recursive_array
+* [2/7] TODO 
+ - [X] rename 'fd' to 'handle' in both scripts
+ - [X] cleanup get_recursive_array
  - [ ] use single s///ge in djvused_escape? benchmark this
  - [ ] test extract return value with empty outline
  - [ ] test removing of outline
- - [ ] THANKS in readme
+ - [ ] YAML::XS or djvused not found => add install instructions or pointer to README
 
 # Local Variables:
 # mode: org
