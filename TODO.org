@@ -5,7 +5,3 @@
  - [ ] test extract return value with empty outline
  - [ ] test removing of outline
  - [ ] YAML::XS or djvused not found => add install instructions or pointer to README
-
-# Local Variables:
-# mode: org
-# End:
