@@ -1,6 +1,6 @@
 * bookmark-DjVu
-=bookmark-djvu= and =bookmark-djvu-extract= are [[https://en.wikipedia.org/wiki/YAML][YAML]] -enabled wrappers around
-[[http://djvu.sourceforge.net/doc/man/djvused.html][DjVuLibre's djvused program]]. They allow simple modification and extraction
+=bookmark-djvu= and =bookmark-djvu-extract= are [[https://en.wikipedia.org/wiki/YAML][YAML]] -enabled wrappers around 
+[[http://djvu.sourceforge.net/index.html][DjVuLibre's]] [[http://djvu.sourceforge.net/doc/man/djvused.html][djvused]] tool. They allow simple modification and extraction
 of DjVu outlines.
 
 ** Install
