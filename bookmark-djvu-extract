@@ -78,28 +78,28 @@ if (!$output_filename) {
     }
 }
 
-open my $output_fd, ">", $output_filename
+open my $output_handle, ">", $output_filename
     or die "cannot open file '$output_filename': $!";
 
 # start extracting bookmarks with djvused in a pipe
-open my $djvused_fd, "-|", ("djvused", $djvu_filename, "-u", "-e",
+open my $djvused_handle, "-|", ("djvused", $djvu_filename, "-u", "-e",
     "print-outline") or die "could not start djvused: $!\n";
 
-binmode $djvused_fd, ':encoding(UTF-8)';
+binmode $djvused_handle, ':encoding(UTF-8)';
 
 
-my $outline_items = parse_djvused_output ($djvused_fd);
+my $outline_items = parse_djvused_output ($djvused_handle);
 die "no outline found" unless @$outline_items;
 
 
-close $djvused_fd 
+close $djvused_handle 
     or die "djvused failed with exit status ", $? >> 8, "\n";
 
 if ($use_simple_format) {
-    dump_to_simple_format ($output_fd, $outline_items);
+    dump_to_simple_format ($output_handle, $outline_items);
 }
 else {
-    dump_to_yaml ($output_fd, $outline_items);
+    dump_to_yaml ($output_handle, $outline_items);
 }
 
 
@@ -107,16 +107,16 @@ else {
 # returns: arrayref of hashrefs, each describing level, title and page of an
 # outline item.
 sub parse_djvused_output {
-    my $djvused_fd = shift;
+    my $djvused_handle = shift;
     my $level = 0;
-    my $line = <$djvused_fd>;
+    my $line = <$djvused_handle>;
 
     if (!$line or $line !~ /^\(bookmarks$/) {
 	warn "no bookmarks found\n";
 	return [];
     }
     my $outline_items = [];
-    while ($line = <$djvused_fd>) {
+    while ($line = <$djvused_handle>) {
 	chomp $line;
 	$line =~ /^\s*\("(?<title>.+)"$/
 	    or die "line '$line' in djvused output does not match.
@@ -124,7 +124,7 @@ Please report to $bug_address\n";
 	
 	my $title = djvused_unescape ($+{title});
 	
-	$line = <$djvused_fd>;
+	$line = <$djvused_handle>;
 
 	$line =~ /\s*"#(?<page>[0-9]+)"(?<close>(\s*\))*)\s*$/
 	    or die "line '$line' in djvused output does not match.
@@ -138,11 +138,11 @@ Please report to $bug_address\n";
 }
 
 sub dump_to_simple_format {
-    my $out_fd = shift;
+    my $out_handle = shift;
     my $outline_items = shift;
-    binmode $out_fd, ':encoding(UTF-8)';
+    binmode $out_handle, ':encoding(UTF-8)';
     for my $outline (@$outline_items) {
-	print {$out_fd} "    "x($outline->{level}),
+	print {$out_handle} "    "x($outline->{level}),
 	prepare_title ($outline->{title}),
 	, " $outline->{page}\n";
     }
@@ -168,44 +168,42 @@ sub prepare_title {
 
 
 sub dump_to_yaml {
-    my $out_fd = shift;
+    my $out_handle = shift;
     my $input_array = shift;
     (my $array, undef) = get_recursive_array ($input_array, 0);
-    print {$out_fd}  Dump ($array);
+    print {$out_handle}  Dump ($array);
 }
 
 # recursively convert flat array into nested data structure
 # args: input array ref, index to start
 # returns: output array ref, following index
 sub get_recursive_array {
-    my $input_array = shift;
-    my $start = shift;
-    my $index = $start;
-    my $last = $#$input_array;
-    my $level = $input_array->[$index]{level};
-    my $result_array = [];
-    while (1) {
-	
-	last if $index > $last;
-	my $next_level = $input_array->[$index]{level};
-	die "error in get_recursive_array" if $next_level > $level;
-	
-	last if $next_level < $level;
-
-	my $outline_item = {title => $input_array->[$index]{title},
-			    page => $input_array->[$index]{page}};
-
+    my ($input_array, $index) = @_;
     
-	if ($index + 1 <= $last 
-	    && $input_array->[$index + 1]{level} > $level) {
+    my $last = $#{$input_array};
+    my $base_level = $input_array->[$index]{level};
+    my $result_array = [];
+    
+    while ($index <= $last) {
+	my $node = $input_array->[$index];
+	my $current_level = $node->{level};
+	
+	last if $current_level < $base_level;
+
+	my $outline_item = {title => $node->{title}, page => $node->{page}};
+
+	my $next_index = $index + 1;
+	my $next_level = $input_array->[$next_index]{level};
+	
+	if ($next_index <= $last && $next_level > $base_level) {
 	    ($outline_item->{kids}, $index) =
-		get_recursive_array ($input_array, $index + 1);
+		get_recursive_array ($input_array, $next_index);
 	}
 	else {
 	    ++$index;
 	}
 	
-	push @$result_array, $outline_item;
+	push @{$result_array}, $outline_item;
     }
 
     return ($result_array, $index);
