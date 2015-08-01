@@ -75,7 +75,7 @@ my %opt_hash = (
     "version|V" => sub {print_version (); exit},
     );
 
-print_usage () , exit (1) unless GetOptions (%opt_hash) and @ARGV;
+print_usage () , exit (1) unless GetOptions (%opt_hash) && @ARGV;
 
 my $djvu_filename = $ARGV[0];
 if (! -f $djvu_filename) {
@@ -97,7 +97,7 @@ else {
 }
 
 
-open my $in_fh, '<', $bookmarks_filename
+open my $input_handle, '<', $bookmarks_filename
     or die "cannot open $bookmarks_filename: $!\n";
 
 my $page_count = page_count ($djvu_filename)
@@ -105,10 +105,10 @@ my $page_count = page_count ($djvu_filename)
     
 my $djvused_outline;
 if ($use_simple_format) {
-    $djvused_outline = simple_format_to_djvused_outline ($in_fh);
+    $djvused_outline = simple_format_to_djvused_outline ($input_handle);
 }
 else {
-    $djvused_outline = yaml_to_djvused_outline ($in_fh);
+    $djvused_outline = yaml_to_djvused_outline ($input_handle);
 }
 
 # run external commands
@@ -124,11 +124,11 @@ system_wrapper ("djvused", $output_filename, "-e",
 sub page_count {
     my $filename = shift;
     
-    open my $fd, "-|", "djvused", $filename, "-e", "n"
+    open my $djvused_handle, "-|", "djvused", $filename, "-e", "n"
 	or return 0;
-    my $count = <$fd>;
-    if (!close $fd) {
-	warn "djvused failed with status ", $? << 8, "\n";
+    my $count = <$djvused_handle>;
+    if (!close $djvused_handle) {
+	warn "djvused failed with status ", $? >> 8, ".\n";
 	return 0;
     }
 
@@ -138,8 +138,8 @@ sub page_count {
 
 # returns: filename
 sub simple_format_to_djvused_outline {
-    my $in_fh = shift;
-    binmode $in_fh, ':encoding(UTF-8)';
+    my $input_handle = shift;
+    binmode $input_handle, ':encoding(UTF-8)';
     (my $out_fh, my $out_filename) = tempfile (UNLINK => 1);
     binmode $out_fh, ':encoding(UTF-8)';
 
@@ -158,12 +158,12 @@ sub simple_format_to_djvused_outline {
 
     print {$out_fh} "(bookmarks";
     
-    while (my $line = <$in_fh>) {
+    while (my $line = <$input_handle>) {
 	chomp ($line);
 	++$line_number;
 	
 	# skip blank lines or comments
-	next if $line =~ /^\s*$/ or ($allow_comments and $line =~ /^#/);
+	next if $line =~ /^\s*$/ || ($allow_comments && $line =~ /^#/);
 
 	# check for offset marker
 	if ($line =~ /^\s*d=(?<difference>-?[0-9]+)\s*$/) {
@@ -179,7 +179,7 @@ sub simple_format_to_djvused_outline {
 
 	my $title = $+{title};
 	my $page = $+{page} + $offset;
-	if ($page < 1 or $page > $page_count) {
+	if ($page < 1 || $page > $page_count) {
 	    die "page number $page in line $line_number out of range ".
 		"(page count: $page_count)\n";
 	}
@@ -214,11 +214,11 @@ sub simple_format_to_djvused_outline {
 # arg: input filedescriptor  
 # returns output filename
 sub yaml_to_djvused_outline {
-    my $in_fh = shift;
+    my $input_handle = shift;
     (my $out_fh, my $out_filename) = tempfile (UNLINK => 1);
     binmode $out_fh, ':encoding(UTF-8)';
     
-    my $outline = Load (do {local $/; local $_ = <$in_fh>});
+    my $outline = Load (do {local $/; local $_ = <$input_handle>});
         
     print {$out_fh} "(bookmarks";
 
@@ -233,10 +233,11 @@ sub yaml_to_djvused_outline {
     return $out_filename;
 }
 
-# print djvused outline recursively from array ref
+# used by yaml_to_djvused_outline
+# prints djvused outline recursively from array ref
 # args: output file descriptor, arrayref 
 sub array_ref_to_djvused_outline {
-    my $out_fh = shift;
+    my $output_handle = shift;
     my $outline = shift;
     
     unless (ref ($outline) eq "ARRAY") {
@@ -247,19 +248,19 @@ sub array_ref_to_djvused_outline {
 	my $title = $hashref->{title} or die "missing title in outline hash";
 	$title = djvused_escape ($title);
 	my $page = $hashref->{page};
-	if ($page < 1 or $page > $page_count) {
+	if ($page < 1 || $page > $page_count) {
 	    die "page number $page out of range ".
 		"(page count: $page_count)\n";
 	}  
 	
 	# print out this outline item
-	print {$out_fh} qq{\n("$title" "#$page"};
+	print {$output_handle} qq{\n("$title" "#$page"};
 	
 	if ($hashref->{kids}) {
-	    array_ref_to_djvused_outline ($out_fh, $hashref->{kids});
+	    array_ref_to_djvused_outline ($output_handle, $hashref->{kids});
 	}
 
-	print {$out_fh} ")";
+	print {$output_handle} ")";
     }
 }
     
@@ -268,16 +269,29 @@ sub djvused_escape {
     # and perlrebackslash
 
     my $title = shift;
-    $title =~ s/\\/\\\\/g;	    
-    $title =~ s/"/\\"/g;
 
-    # a b t n v f r
+    if ($title =~ /\n/) {
+	die "djvused_escape: \\n in '$title'\n" .
+	    "Please report this at $bug_address\n" 
+    }
+
+    # need to escape \, ", \a, \x{08}, \t, \x{0b}, \f and \r
+
+    # \ is first, since it is contained in the replacement texts
+    $title =~ s/\\/\\\\/g;
+    
+    $title =~ s/"/\\"/g;
+    
     $title =~ s/\a/\\a/g;
+    
     $title =~ s/\x{08}/\\b/g;
+    
     $title =~ s/\t/\\t/g;
-    $title =~ s/\n/\\n/g;	# never encountered
+    
     $title =~ s/\x{0b}/\\v/g;
+    
     $title =~ s/\f/\\f/g;
+    
     $title =~ s/\r/\\r/g;
     
     return $title;

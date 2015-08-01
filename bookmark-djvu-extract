@@ -89,7 +89,11 @@ binmode $djvused_handle, ':encoding(UTF-8)';
 
 
 my $outline_items = parse_djvused_output ($djvused_handle);
-die "no outline found" unless @$outline_items;
+
+unless (@{$outline_items}) {
+    warn "no outline found\n";
+    exit 1;
+}
 
 
 close $djvused_handle 
