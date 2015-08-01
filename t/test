@@ -10,17 +10,20 @@ use utf8;
 use Test::More;
 use YAML::XS qw/LoadFile/;
 
+use constant GET_OUTLINE => "../bookmark-djvu-extract";
+use constant SET_OUTLINE => "../bookmark-djvu";
+
 # create empty djvu
-my $djvu = create_djvu (8, ".djvu");
+my $djvu = create_djvu (8);
 
 # ################################# #
 # compare files after set and get:  #
 # ################################# #
 
-system_ok ("../bookmark-djvu -s $djvu input1");
+system_ok (SET_OUTLINE . " -s $djvu input1");
 
 (undef, my $outline) = tempfile (UNLINK => 1);
-system_ok ("../bookmark-djvu-extract -s $djvu -o $outline");
+system_ok (GET_OUTLINE . " -s $djvu -o $outline");
 
 # compare
 files_ok ($outline, "expected1");
@@ -28,7 +31,7 @@ unlink ($outline);
 
 # default filenames
 
-$djvu = create_djvu (8, ".djvu");
+$djvu = create_djvu (8);
 
 $outline = ($djvu =~ s/\.djvu$/.bm/r);
 say "outline: $outline";
@@ -36,11 +39,11 @@ say "outline: $outline";
 system_ok ("cp input1 $outline");
 # compare files after set and get:
  
-system_ok ("../bookmark-djvu -s $djvu");
+system_ok (SET_OUTLINE . " -s $djvu");
 
 unlink ($outline);
 
-system_ok ("../bookmark-djvu-extract -s $djvu");
+system_ok (GET_OUTLINE . " -s $djvu");
 
 # compare
 files_ok ($outline, "expected1");
@@ -50,17 +53,17 @@ unlink ($outline);
 # YAML #
 # #### #
 
-my $djvu = create_djvu (5, ".djvu");
+$djvu = create_djvu (5);
 
-system_ok ("../bookmark-djvu $djvu input1.yaml");
+system_ok (SET_OUTLINE . " $djvu input1.yaml");
 
-(undef, my $outline) = tempfile (UNLINK => 1);
-system_ok ("../bookmark-djvu-extract  $djvu -o $outline");
+(undef, $outline) = tempfile (UNLINK => 1);
+system_ok (GET_OUTLINE . " $djvu -o $outline");
 yaml_ok ("input1.yaml", $outline);
 
 # default filenames
 
-$djvu = create_djvu (5, ".djvu");
+$djvu = create_djvu (5);
 
 $outline = ($djvu =~ s/\.djvu$/.outline/r);
 say "outline: $outline";
@@ -69,29 +72,63 @@ system_ok ("cp input1.yaml $outline");
 
 # compare files after set and get:
  
-system_ok ("../bookmark-djvu $djvu");
+system_ok (SET_OUTLINE . " $djvu");
 
 unlink ($outline);
 
-system_ok ("../bookmark-djvu-extract $djvu");
+system_ok (GET_OUTLINE . " $djvu");
 
 # compare
 yaml_ok ("input1.yaml", $outline);
 unlink ($outline);
 
+# ############### #
+# remove outlines #
+# ############### #
+
+$djvu = create_djvu (5);
+system_ok (SET_OUTLINE . " $djvu input1.yaml");
+
+# empty input file
+system_ok (SET_OUTLINE . " $djvu /dev/null");
+
+system_is (GET_OUTLINE . " $djvu -o /dev/null", 1);
+
+#simple format
+
+$djvu = create_djvu (5);
+system_ok (SET_OUTLINE . " $djvu input1.yaml");
+
+# empty input file
+system_ok (SET_OUTLINE . " $djvu -s /dev/null");
+
+system_is (GET_OUTLINE . " $djvu -o /dev/null", 1);
 
 done_testing ();
 
 sub yaml_ok {
-    my $file1 = shift;
-    my $file2 = shift;
+    my ($file1, $file2) = @_;
+
     is_deeply (LoadFile ($file1), LoadFile ($file2),
 	       "yaml_ok: file1=$file1, file2=$file2");
 }
 
 sub system_ok {
-    my $command = shift;
-    is (system ($command), 0, "command: $command");
+    my ($command) = @_ ;
+    
+    ok (system ($command) == 0, "command: $command");
+}
+
+sub system_is {
+    my ($command, $exit_status) = @_;
+    
+    system ($command);
+    
+    # see 'perldoc -f system'
+    ok ($? != -1
+	&& !($? & 127)
+	&& $? >> 8 == $exit_status,
+	"exit status of '$command' is '$exit_status'"); 
 }
 
 sub files_ok {
@@ -101,8 +138,9 @@ sub files_ok {
 # arguments: page count, suffix
 # returns filename
 sub create_djvu {
-    my $page_count = shift;
-    my $suffix = shift;
+    my ($page_count, $suffix) = @_;
+
+    $suffix or $suffix = ".djvu";
     
     $page_count > 0 or $page_count = 1;
     
@@ -124,7 +162,8 @@ sub create_djvu {
 }
 
 sub system_wrapper {
-    my $command = shift;
+    my ($command) = @_;
+    
     system ($command) == 0
 	or die "command '$command' failed with status ", $? >> 8, "\n";
 }
