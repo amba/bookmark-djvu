@@ -9,7 +9,10 @@ use utf8;
 use Getopt::Long qw/:config no_ignore_case bundling/;
 use File::Basename qw/basename/;
 use Encode qw/decode/;
-use YAML::XS qw/Dump/;
+if (!eval 'use YAML::XS qw/Dump/; 1;') {
+    die "cannot find the YAML::XS Perl module.\n" .
+	"Try '\$ apt-get install libyaml-libyaml-perl'.\n";
+}
 
 binmode STDOUT, ':encoding(UTF-8)'; 
 binmode STDIN, ':encoding(UTF-8)';
@@ -83,7 +86,8 @@ open my $output_handle, ">", $output_filename
 
 # start extracting bookmarks with djvused in a pipe
 open my $djvused_handle, "-|", ("djvused", $djvu_filename, "-u", "-e",
-    "print-outline") or die "could not start djvused: $!\n";
+    "print-outline") or die "cannot find djvused.\n" .
+    "Try '\$ apt-get install djvulibre-bin'.\n";
 
 binmode $djvused_handle, ':encoding(UTF-8)';
 

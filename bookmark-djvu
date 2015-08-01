@@ -12,8 +12,10 @@ use Encode qw/decode/;
 use Getopt::Long qw/:config no_ignore_case bundling/;
 use File::Temp qw/tempfile/;
 use File::Basename qw/basename/;
-use YAML::XS qw/Load/;
-
+if (!eval 'use YAML::XS qw/Load/; 1;') {
+    die "cannot find the YAML::XS Perl module.\n" .
+	"Try '\$ apt-get install libyaml-libyaml-perl'.\n";
+}
 
 binmode STDOUT, ':encoding(UTF-8)'; 
 binmode STDIN, ':encoding(UTF-8)';
@@ -100,8 +102,7 @@ else {
 open my $input_handle, '<', $bookmarks_filename
     or die "cannot open $bookmarks_filename: $!\n";
 
-my $page_count = page_count ($djvu_filename)
-    or die "error: could not get page count\n";
+my $page_count = page_count ($djvu_filename);
     
 my $djvused_outline;
 if ($use_simple_format) {
@@ -120,16 +121,18 @@ system_wrapper ("djvused", $output_filename, "-e",
 		"set-outline $djvused_outline", "-s");
 
 # argument: djvu filename
-# returns 0 on error
+# returns: page count
 sub page_count {
     my $filename = shift;
     
     open my $djvused_handle, "-|", "djvused", $filename, "-e", "n"
-	or return 0;
+	or die "cannot find djvused.\n" .
+	"Try '\$ apt-get install djvulibre-bin'.\n";
+    
     my $count = <$djvused_handle>;
+    
     if (!close $djvused_handle) {
-	warn "djvused failed with status ", $? >> 8, ".\n";
-	return 0;
+	die "djvused failed with status ", $? >> 8, ".\n";
     }
 
     chomp ($count);

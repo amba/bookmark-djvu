@@ -8,7 +8,10 @@ use strict;
 use File::Temp qw/tempfile/;
 use utf8;
 use Test::More;
-use YAML::XS qw/LoadFile/;
+if (!eval 'use YAML::XS qw/LoadFile/; 1;') {
+    die "cannot find the YAML::XS Perl module.\n" .
+	"Try '\$ apt-get install libyaml-libyaml-perl'.\n";
+}
 
 use constant GET_OUTLINE => "../bookmark-djvu-extract";
 use constant SET_OUTLINE => "../bookmark-djvu";
