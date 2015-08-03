@@ -107,6 +107,29 @@ system_ok (SET_OUTLINE . " $djvu -s /dev/null");
 
 system_is (GET_OUTLINE . " $djvu -o /dev/null", 1);
 
+# ############### #
+# page count      #
+# ############### #
+
+
+$djvu = create_djvu (4);
+# input1.yaml uses 5 pages
+system_is (SET_OUTLINE . " $djvu input1.yaml", 1);
+
+# simple format
+
+$djvu = create_djvu (7);
+system_is (SET_OUTLINE . " --simple $djvu input1", 1);
+
+# ############### #
+# return values   #
+# ############### #
+
+# unknown option
+system_is (SET_OUTLINE . " --hello $djvu", 1);
+
+# missing argument
+system_is (SET_OUTLINE . " --simple", 1);
 done_testing ();
 
 sub yaml_ok {
@@ -128,10 +151,8 @@ sub system_is {
     system ($command);
     
     # see 'perldoc -f system'
-    ok ($? != -1
-	&& !($? & 127)
-	&& $? >> 8 == $exit_status,
-	"exit status of '$command' is '$exit_status'"); 
+    ok ($? != -1 && !($? & 127), "command did not die");
+    is ($? >> 8, $exit_status, "exit status of '$command' is '$exit_status'"); 
 }
 
 sub files_ok {

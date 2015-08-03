@@ -132,7 +132,8 @@ sub page_count {
     my $count = <$djvused_handle>;
     
     if (!close $djvused_handle) {
-	die "djvused failed with status ", $? >> 8, ".\n";
+	warn "djvused failed with status ", $? >> 8, ".\n";
+	exit 1;
     }
 
     chomp ($count);
@@ -183,8 +184,9 @@ sub simple_format_to_djvused_outline {
 	my $title = $+{title};
 	my $page = $+{page} + $offset;
 	if ($page < 1 || $page > $page_count) {
-	    die "page number $page in line $line_number out of range ".
+	    warn "page number $page in line $line_number out of range ".
 		"(page count: $page_count)\n";
+	    exit 1;
 	}
 	
 	if ($indent_depth > $prev_indent_depth + 1) {
@@ -252,8 +254,8 @@ sub array_ref_to_djvused_outline {
 	$title = djvused_escape ($title);
 	my $page = $hashref->{page};
 	if ($page < 1 || $page > $page_count) {
-	    die "page number $page out of range ".
-		"(page count: $page_count)\n";
+	    warn "page number $page out of range (page count: $page_count)\n";
+	    exit 1;
 	}  
 	
 	# print out this outline item
