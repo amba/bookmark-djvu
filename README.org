@@ -115,7 +115,3 @@ Please report bugs at [[https://github.com/simon0x5b/bookmark-djvu/issues]].
 Copyright (C) 2015, Simon Reinhardt
 
 #+STARTUP: content
-
-# Local Variables:
-# mode: org
-# End:
