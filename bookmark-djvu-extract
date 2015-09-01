@@ -19,7 +19,7 @@ binmode STDIN, ':encoding(UTF-8)';
 binmode STDERR, ':encoding(UTF-8)';
 
 my $prog_name = basename $0;
-my $bug_address = "www.github.com/simon0x5b/bookmark-djvu/issues";
+my $bug_address = "www.github.com/amba/bookmark-djvu/issues";
 
 sub print_usage {
     say "Usage: $prog_name [OPTIONS] DJVU [-o BOOKMARKS_FILE]";
@@ -62,8 +62,10 @@ my %opt_hash = (
     "help|h" => sub {print_help (); exit 0},
     "version|V" => sub {print_version (); exit 0},
     );
-
-print_usage (), exit (1) unless GetOptions (%opt_hash) and @ARGV;
+unless (GetOptions (%opt_hash) && @ARGV) {
+    print_usage ();
+    exit 1;
+}
 
 my $djvu_filename = $ARGV[0];
 if (! -f $djvu_filename) {

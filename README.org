@@ -92,7 +92,7 @@ Known to pass on:
 
 
 ** Bugs
-Please report bugs at [[https://github.com/simon0x5b/bookmark-djvu/issues]].
+Please report bugs at [[https://github.com/amba/bookmark-djvu/issues]].
 
 *** Known Bugs
 - bookmark-djvu-extract produces YAML with alphabetically ordered mappings, in contrast to the more sane ordering used above.
